@@ -1,0 +1,63 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: linhkien-iot-ai
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/linhkien_iotai}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+      continue-on-error: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 2000ms
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:4c696e684b69656e496f5441695365637265744b65793230323648434d554e52454a5754546f6b656e}
+    expiration-ms: 86400000 # 24 hours
+  vietqr:
+    bank-id: ${APP_VIETQR_BANK_ID:MB}
+    bank-name: ${APP_VIETQR_BANK_NAME:MBBank - Ngan hang TMCP Quan doi}
+    account-no: ${APP_VIETQR_ACCOUNT_NO:0987654321}
+    account-name: ${APP_VIETQR_ACCOUNT_NAME:TRAN HUU NHAN}
+    template: ${APP_VIETQR_TEMPLATE:compact2}
+  mqtt:
+    enabled: ${APP_MQTT_ENABLED:false}
+    broker-url: ${APP_MQTT_BROKER_URL:tcp://localhost:1883}
+    client-id: ${APP_MQTT_CLIENT_ID:linhkien-backend-subscriber}
+  redis:
+    enabled: ${APP_REDIS_ENABLED:false}
+  rabbitmq:
+    enabled: ${APP_RABBITMQ_ENABLED:false}
+  simulator:
+    internal-enabled: ${APP_SIMULATOR_INTERNAL_ENABLED:true}
+    interval-ms: 2000
+
+logging:
+  level:
+    root: INFO
+    com.linhkien.iotai: DEBUG

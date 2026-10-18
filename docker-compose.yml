@@ -1,0 +1,117 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: linhkien-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: linhkien_iotai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d linhkien_iotai"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: linhkien-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: linhkien-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: linhkien-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+
+  backend:
+    build: ./backend
+    container_name: linhkien-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: linhkien_iotai
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      MQTT_HOST: mosquitto
+      APP_REDIS_ENABLED: "true"
+      APP_RABBITMQ_ENABLED: "true"
+      APP_MQTT_ENABLED: "true"
+      APP_SIMULATOR_INTERNAL_ENABLED: "true"
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    container_name: linhkien-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+  iot-simulator:
+    build: ./iot-simulator
+    container_name: linhkien-iot-simulator
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+      - backend
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      DEVICES: PC-NHAN-001,PC-LAB-002
+      SCENARIO: IDLE
+      INTERVAL: 2
+
+volumes:
+  pgdata:
+  mosquitto-data:

@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/linhkien_iotai
+    username: postgres
+    password: postgres
+  data:
+    redis:
+      host: redis
+      port: 6379
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: guest
+    password: guest
+
+app:
+  mqtt:
+    enabled: true
+    broker-url: tcp://mosquitto:1883
+  redis:
+    enabled: true
+  rabbitmq:
+    enabled: true
+  simulator:
+    internal-enabled: false
