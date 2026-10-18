@@ -22,7 +22,7 @@ public class JwtTokenProvider {
     @Value("${app.jwt.expiration-ms}")
     private long jwtExpirationInMs;
 
-    private Key getSigningKey() {
+    private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         if (keyBytes.length < 32) {
             keyBytes = jwtSecret.getBytes();
@@ -42,13 +42,13 @@ public class JwtTokenProvider {
                 .claim("role", userPrincipal.getAuthorities().iterator().next().getAuthority())
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(getSigningKey(), Jwts.SIG.HS256)
+                .signWith(getSigningKey())
                 .compact();
     }
 
     public Long getUserIdFromJWT(String token) {
         Claims claims = Jwts.parser()
-                .verifyWith((SecretKey) getSigningKey())
+                .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -59,7 +59,7 @@ public class JwtTokenProvider {
     public boolean validateToken(String authToken) {
         try {
             Jwts.parser()
-                    .verifyWith((SecretKey) getSigningKey())
+                    .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(authToken);
             return true;

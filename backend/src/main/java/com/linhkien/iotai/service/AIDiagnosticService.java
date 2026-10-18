@@ -137,7 +137,7 @@ public class AIDiagnosticService {
                         .bottleneckType("RAM_EXHAUSTION")
                         .severity(Severity.HIGH)
                         .diagnosticText("Nâng cấp RAM từ 16GB lên kit 32GB Dual Channel để chấm dứt tình trạng tràn RAM khi đa nhiệm.")
-                        .currentComponent(device.getCurrentRam())
+                        .currentProduct(device.getCurrentRam())
                         .recommendedProduct(suggestedRam)
                         .expectedPerformanceGain("+35% tốc độ tải ứng dụng và độ mượt khi đa nhiệm/chơi game nặng")
                         .build());
@@ -166,7 +166,7 @@ public class AIDiagnosticService {
                         .bottleneckType("CPU_BOTTLENECK")
                         .severity(Severity.HIGH)
                         .diagnosticText("Nâng cấp vi xử lý lên dòng nhiều nhân/luồng hơn để giải phóng toàn bộ sức mạnh của Card đồ họa.")
-                        .currentComponent(device.getCurrentCpu())
+                        .currentProduct(device.getCurrentCpu())
                         .recommendedProduct(suggestedCpu)
                         .expectedPerformanceGain("+40% FPS ổn định, giảm tối đa hiện tượng 1% low FPS trong game")
                         .build());
@@ -196,7 +196,7 @@ public class AIDiagnosticService {
                         .bottleneckType("THERMAL_THROTTLING")
                         .severity(Severity.CRITICAL)
                         .diagnosticText("Trang bị bộ tản nhiệt nước All-In-One (AIO 240mm/360mm) với khả năng giải nhiệt cao vượt trội so với tản khí thông thường.")
-                        .currentComponent(device.getCurrentCooler())
+                        .currentProduct(device.getCurrentCooler())
                         .recommendedProduct(suggestedCooler)
                         .expectedPerformanceGain("Giảm ngay 15°C - 20°C nhiệt độ CPU, duy trì xung boost tối đa liên tục")
                         .build());
@@ -225,7 +225,7 @@ public class AIDiagnosticService {
                         .bottleneckType("PSU_INSUFFICIENT")
                         .severity(Severity.HIGH)
                         .diagnosticText("Nâng cấp nguồn lên chuẩn 80 Plus Gold 750W - 850W để đảm bảo độ bền linh kiện và cấp nguồn ổn định khi tải đỉnh.")
-                        .currentComponent(device.getCurrentPsu())
+                        .currentProduct(device.getCurrentPsu())
                         .recommendedProduct(suggestedPsu)
                         .expectedPerformanceGain("Bảo vệ toàn diện phần cứng, ngăn ngừa sập nguồn và hiện tượng tụt áp")
                         .build());
