@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,6 +22,7 @@ public class InternalSimulatorService {
 
     private final IotDeviceRepository deviceRepository;
     private final IotTelemetryService telemetryService;
+    private final MqttSubscriberService mqttSubscriberService;
 
     @Value("${app.simulator.internal-enabled:true}")
     private boolean simulatorEnabled;
@@ -53,6 +55,11 @@ public class InternalSimulatorService {
             );
 
             if ("STOP".equalsIgnoreCase(sc)) {
+                continue;
+            }
+
+            // If real PC agent is actively publishing via MQTT within last 10s, pause simulator
+            if (mqttSubscriberService.isRealPcStreaming(dev.getDeviceCode())) {
                 continue;
             }
 
@@ -112,6 +119,21 @@ public class InternalSimulatorService {
                 ambTemp = 27.0f + random.nextFloat() * 2.0f;
                 ambHum = 65.0f + random.nextFloat() * 5.0f;
                 break;
+        }
+
+        // Check if real ESP32 sent environment data via MQTT
+        Map<String, Object> realEnv = mqttSubscriberService.getLatestAmbientData(deviceCode);
+        if (realEnv != null) {
+            if (realEnv.containsKey("ambientTemp")) {
+                ambTemp = ((Number) realEnv.get("ambientTemp")).floatValue();
+            } else if (realEnv.containsKey("temperature")) {
+                ambTemp = ((Number) realEnv.get("temperature")).floatValue();
+            }
+            if (realEnv.containsKey("ambientHumidity")) {
+                ambHum = ((Number) realEnv.get("ambientHumidity")).floatValue();
+            } else if (realEnv.containsKey("humidity")) {
+                ambHum = ((Number) realEnv.get("humidity")).floatValue();
+            }
         }
 
         return IotDto.TelemetryResponse.builder()

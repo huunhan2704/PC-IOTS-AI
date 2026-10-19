@@ -37,6 +37,7 @@ public class MqttSubscriberService implements MqttCallback {
 
     // Cache latest environment data from ESP32: deviceId -> {temperature, humidity, esp32_ip}
     private final Map<String, Map<String, Object>> latestEnvData = new ConcurrentHashMap<>();
+    private final Map<String, Long> realPcLastStreamMap = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void start() {
@@ -87,35 +88,65 @@ public class MqttSubscriberService implements MqttCallback {
 
         try {
             if (topic.startsWith("iot/environment/")) {
-                String deviceId = topic.substring("iot/environment/".length());
+                String rawDeviceId = topic.substring("iot/environment/".length());
+                // Map ESP32_ROOM_01 to PC-NHAN-001 or keep raw
+                String deviceId = "ESP32_ROOM_01".equalsIgnoreCase(rawDeviceId) ? "PC-NHAN-001" : rawDeviceId;
+
                 Map<String, Object> envMap = objectMapper.readValue(payload, Map.class);
                 latestEnvData.put(deviceId, envMap);
+                log.info("Received environment telemetry from ESP32 for {}: {}", deviceId, payload);
 
             } else if (topic.startsWith("pc/telemetry/")) {
-                String deviceId = topic.substring("pc/telemetry/".length());
+                String rawDeviceId = topic.substring("pc/telemetry/".length());
+                String deviceId = ("PC_GAMING_NHAN".equalsIgnoreCase(rawDeviceId) || "PC_GAMING".equalsIgnoreCase(rawDeviceId)) ? "PC-NHAN-001" : rawDeviceId;
+
                 Map<String, Object> telemMap = objectMapper.readValue(payload, Map.class);
 
                 // Merge environment data if present
                 Map<String, Object> env = latestEnvData.getOrDefault(deviceId, Collections.emptyMap());
-                float ambTemp = env.containsKey("temperature") ? ((Number) env.get("temperature")).floatValue() : 28.0f;
-                float ambHum = env.containsKey("humidity") ? ((Number) env.get("humidity")).floatValue() : 60.0f;
+                float ambTemp = 28.0f;
+                if (env.containsKey("ambientTemp")) {
+                    ambTemp = ((Number) env.get("ambientTemp")).floatValue();
+                } else if (env.containsKey("temperature")) {
+                    ambTemp = ((Number) env.get("temperature")).floatValue();
+                }
+
+                float ambHum = 60.0f;
+                if (env.containsKey("ambientHumidity")) {
+                    ambHum = ((Number) env.get("ambientHumidity")).floatValue();
+                } else if (env.containsKey("humidity")) {
+                    ambHum = ((Number) env.get("humidity")).floatValue();
+                }
+
+                // Support both camelCase (from python script) and snake_case (standard)
+                float cpuLoad = getFloat(telemMap, "cpuLoad", "cpu_load", 0.0f);
+                float cpuTemp = getFloat(telemMap, "cpuTemp", "cpu_temp", 42.0f);
+                int cpuFreq = getInt(telemMap, "cpuFreq", "cpu_clock_mhz", 3600);
+                float ramUsage = getFloat(telemMap, "ramUsage", "ram_usage", 45.0f);
+                float ramUsedGb = getFloat(telemMap, "ramUsedGb", "ram_used_gb", 7.2f);
+                float ramTotalGb = getFloat(telemMap, "ramTotalGb", "ram_total_gb", 16.0f);
+                float gpuLoad = getFloat(telemMap, "gpuLoad", "gpu_load", 5.0f);
+                float gpuTemp = getFloat(telemMap, "gpuTemp", "gpu_temp", 40.0f);
+                int fanRpm = getInt(telemMap, "fanRpm", "fan_speed_rpm", 1100);
+                int powerW = getInt(telemMap, "powerDrawW", "power_draw_w", 120);
 
                 IotDto.TelemetryResponse telem = IotDto.TelemetryResponse.builder()
                         .deviceCode(deviceId)
-                        .cpuLoad(telemMap.containsKey("cpu_load") ? ((Number) telemMap.get("cpu_load")).floatValue() : 0.0f)
-                        .cpuTemp(telemMap.containsKey("cpu_temp") ? ((Number) telemMap.get("cpu_temp")).floatValue() : 0.0f)
-                        .cpuClockMhz(telemMap.containsKey("cpu_clock_mhz") ? ((Number) telemMap.get("cpu_clock_mhz")).intValue() : 3600)
-                        .ramUsage(telemMap.containsKey("ram_usage") ? ((Number) telemMap.get("ram_usage")).floatValue() : 0.0f)
-                        .ramUsedGb(telemMap.containsKey("ram_used_gb") ? ((Number) telemMap.get("ram_used_gb")).floatValue() : 0.0f)
-                        .ramTotalGb(telemMap.containsKey("ram_total_gb") ? ((Number) telemMap.get("ram_total_gb")).floatValue() : 16.0f)
-                        .gpuLoad(telemMap.containsKey("gpu_load") ? ((Number) telemMap.get("gpu_load")).floatValue() : 0.0f)
-                        .gpuTemp(telemMap.containsKey("gpu_temp") ? ((Number) telemMap.get("gpu_temp")).floatValue() : 0.0f)
-                        .fanSpeedRpm(telemMap.containsKey("fan_speed_rpm") ? ((Number) telemMap.get("fan_speed_rpm")).intValue() : 1200)
-                        .powerDrawW(telemMap.containsKey("power_draw_w") ? ((Number) telemMap.get("power_draw_w")).intValue() : 150)
+                        .cpuLoad(cpuLoad)
+                        .cpuTemp(cpuTemp)
+                        .cpuClockMhz(cpuFreq)
+                        .ramUsage(ramUsage)
+                        .ramUsedGb(ramUsedGb)
+                        .ramTotalGb(ramTotalGb)
+                        .gpuLoad(gpuLoad)
+                        .gpuTemp(gpuTemp)
+                        .fanSpeedRpm(fanRpm)
+                        .powerDrawW(powerW)
                         .ambientTemp(ambTemp)
                         .ambientHumidity(ambHum)
                         .build();
 
+                realPcLastStreamMap.put(deviceId, System.currentTimeMillis());
                 telemetryService.processTelemetry(deviceId, telem);
             }
         } catch (Exception e) {
@@ -123,8 +154,29 @@ public class MqttSubscriberService implements MqttCallback {
         }
     }
 
+    public boolean isRealPcStreaming(String deviceId) {
+        Long lastTime = realPcLastStreamMap.get(deviceId);
+        return lastTime != null && (System.currentTimeMillis() - lastTime < 10000);
+    }
+
     @Override
     public void deliveryComplete(IMqttDeliveryToken token) {
+    }
+
+    private float getFloat(Map<String, Object> map, String key1, String key2, float defaultVal) {
+        if (map.containsKey(key1)) return ((Number) map.get(key1)).floatValue();
+        if (map.containsKey(key2)) return ((Number) map.get(key2)).floatValue();
+        return defaultVal;
+    }
+
+    private int getInt(Map<String, Object> map, String key1, String key2, int defaultVal) {
+        if (map.containsKey(key1)) return ((Number) map.get(key1)).intValue();
+        if (map.containsKey(key2)) return ((Number) map.get(key2)).intValue();
+        return defaultVal;
+    }
+
+    public Map<String, Object> getLatestAmbientData(String deviceId) {
+        return latestEnvData.get(deviceId);
     }
 
     public void publishControlCommand(String deviceId, String scenario) {

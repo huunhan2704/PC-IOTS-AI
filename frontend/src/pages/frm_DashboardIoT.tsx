@@ -97,6 +97,11 @@ export const frm_DashboardIoT: React.FC = () => {
     `/topic/telemetry/${selectedDeviceCode}`,
     (newTel) => {
       setLatestTelemetry(newTel);
+
+      // Automatically clear active alert when system and ambient return to safe normal levels
+      if (newTel.statusFlag === 'NORMAL' && (newTel.ambientTemp || 0) < 40.0) {
+        setActiveAlert(null);
+      }
       setTelemetryHistory((prev) => {
         const timeStr = newTel.recordedAt
           ? newTel.recordedAt.substring(11, 19)

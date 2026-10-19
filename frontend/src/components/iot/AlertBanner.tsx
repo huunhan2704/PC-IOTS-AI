@@ -13,10 +13,11 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
   recentAlert,
   ambientTemp = 0,
 }) => {
-  const isOverheat = statusFlag === 'ALERT_OVERHEAT' || recentAlert?.type === 'ALERT_OVERHEAT';
-  const isAmbientHeat = statusFlag === 'AMBIENT_HEAT' || ambientTemp >= 40 || recentAlert?.type === 'AMBIENT_HEAT';
+  // If current readings have returned to safe normal levels, do not display active alarm
+  const isOverheat = statusFlag === 'ALERT_OVERHEAT';
+  const isAmbientHeat = statusFlag === 'AMBIENT_HEAT' || ambientTemp >= 40.0;
 
-  if (!isOverheat && !isAmbientHeat && !recentAlert) return null;
+  if (!isOverheat && !isAmbientHeat) return null;
 
   return (
     <div

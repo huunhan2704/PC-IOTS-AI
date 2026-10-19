@@ -7,7 +7,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/linhkien_iotai}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:Nhandz12@}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -17,13 +17,10 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-    defer-datasource-initialization: true
+    defer-datasource-initialization: false
   sql:
     init:
-      mode: always
-      schema-locations: classpath:schema.sql
-      data-locations: classpath:data.sql
-      continue-on-error: true
+      mode: never
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
@@ -46,8 +43,8 @@ app:
     account-name: ${APP_VIETQR_ACCOUNT_NAME:TRAN HUU NHAN}
     template: ${APP_VIETQR_TEMPLATE:compact2}
   mqtt:
-    enabled: ${APP_MQTT_ENABLED:false}
-    broker-url: ${APP_MQTT_BROKER_URL:tcp://localhost:1883}
+    enabled: ${APP_MQTT_ENABLED:true}
+    broker-url: ${APP_MQTT_BROKER_URL:tcp://broker.hivemq.com:1883}
     client-id: ${APP_MQTT_CLIENT_ID:linhkien-backend-subscriber}
   redis:
     enabled: ${APP_REDIS_ENABLED:false}
