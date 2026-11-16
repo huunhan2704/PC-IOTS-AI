@@ -46,6 +46,17 @@ export const frm_TuVanAI: React.FC = () => {
     },
   });
 
+  const simulateMutation = useMutation({
+    mutationFn: (scenario: string) => aiService.simulateBottleneck(selectedDeviceCode, scenario),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['ai-diagnostics', selectedDeviceCode], data);
+      toast.success('Đã nạp chuỗi telemetry mô phỏng và kích hoạt AI phát hiện điểm nghẽn!');
+    },
+    onError: () => {
+      toast.error('Không thể nạp dữ liệu mô phỏng lúc này');
+    },
+  });
+
   const handleAddAllToCart = () => {
     if (!report?.recommendations || report.recommendations.length === 0) {
       toast.info('Hiện không có linh kiện nào được đề xuất');
@@ -76,7 +87,7 @@ export const frm_TuVanAI: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={selectedDeviceCode}
             onChange={(e) => setSelectedDeviceCode(e.target.value)}
@@ -90,13 +101,37 @@ export const frm_TuVanAI: React.FC = () => {
             {devices.length === 0 && <option value="PC-NHAN-001">PC Gaming Trần Hữu Nhân</option>}
           </select>
 
+          {/* Quick Simulation Dropdown for Defense Demo */}
+          <div className="flex items-center gap-1.5 bg-indigo-950/40 border border-indigo-500/30 rounded-xl px-2.5 py-1.5">
+            <span className="text-[11px] font-bold text-indigo-300">Test AI:</span>
+            <select
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  simulateMutation.mutate(e.target.value);
+                  e.target.value = '';
+                }
+              }}
+              disabled={simulateMutation.isPending}
+              className="bg-slate-900/90 text-indigo-200 border border-indigo-500/40 rounded-lg px-2 py-1 text-xs font-bold focus:outline-none cursor-pointer hover:border-indigo-400 transition"
+            >
+              <option value="" disabled>-- Chọn kịch bản nghẽn --</option>
+              <option value="RAM">💥 Mô phỏng Tràn RAM (&gt;90%)</option>
+              <option value="CPU">⚠️ Mô phỏng Nghẽn CPU (&gt;95%)</option>
+              <option value="THERMAL">🔥 Mô phỏng Quá nhiệt (&gt;88°C)</option>
+              <option value="PSU">⚡ Mô phỏng Quá tải nguồn</option>
+              <option value="ALL">🚨 Mô phỏng Tổng hợp (Đa nghẽn)</option>
+              <option value="RESET">🔄 Xóa mô phỏng (Về máy gốc 100% Khỏe)</option>
+            </select>
+          </div>
+
           <Button
             size="sm"
             onClick={() => runMutation.mutate()}
-            isLoading={runMutation.isPending || isRefetching}
+            isLoading={runMutation.isPending || isRefetching || simulateMutation.isPending}
           >
             <RefreshCw className="w-3.5 h-3.5 mr-1" />
-            Chạy Lại Phân Tích
+            Đo Đạc Thật
           </Button>
         </div>
       </div>

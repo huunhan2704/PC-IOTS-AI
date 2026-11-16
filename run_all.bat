@@ -11,7 +11,7 @@ set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot
 set PATH=%JAVA_HOME%\bin;C:\Users\Admin\.gemini\antigravity\scratch\maven\apache-maven-3.9.9\bin;%PATH%
 
 echo [1/3] Dang khoi dong Backend Spring Boot (Port 8080)...
-start "Backend Spring Boot" cmd /k "title Backend Spring Boot (Port 8080) && cd /d C:\Users\Admin\.gemini\antigravity\scratch\linhkien-iot-ai\backend && mvn spring-boot:run"
+start "Backend Spring Boot" cmd /k "title Backend Spring Boot (Port 8080) && cd /d C:\Users\Admin\.gemini\antigravity\scratch\linhkien-iot-ai\backend && "%JAVA_HOME%\bin\java.exe" -jar target\linhkien-iot-ai-1.0.0.jar"
 
 timeout /t 5 > nul
 

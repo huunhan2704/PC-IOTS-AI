@@ -51,7 +51,7 @@ app:
   rabbitmq:
     enabled: ${APP_RABBITMQ_ENABLED:false}
   simulator:
-    internal-enabled: ${APP_SIMULATOR_INTERNAL_ENABLED:true}
+    internal-enabled: ${APP_SIMULATOR_INTERNAL_ENABLED:false}
     interval-ms: 2000
 
 logging:

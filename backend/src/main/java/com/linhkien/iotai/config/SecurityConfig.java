@@ -87,11 +87,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/cart/validate").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/coupons/apply").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/orders/track/**").permitAll()
-                        .requestMatchers("/api/pc-builder/validate", "/api/pc-builder/compatible-products", "/api/pc-builder/quick-check").permitAll()
+                        .requestMatchers("/api/pc-builder/validate", "/api/pc-builder/compatible-products", "/api/pc-builder/quick-check", "/api/pc-builder/ai-suggest").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
 
-                        // Admin only endpoints (BR16)
+                        // Role-Based Access Control (RBAC) for Admin, Warehouse, Technician
+                        .requestMatchers("/api/admin/dashboard/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/users/summary").hasAnyRole("ADMIN", "TECHNICIAN")
+                        .requestMatchers("/api/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/products/**").hasAnyRole("ADMIN", "WAREHOUSE")
+                        .requestMatchers("/api/admin/orders/**").hasAnyRole("ADMIN", "WAREHOUSE")
+                        .requestMatchers("/api/admin/devices/**", "/api/admin/alerts/**").hasAnyRole("ADMIN", "TECHNICIAN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // Authenticated endpoints

@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     email           VARCHAR(255) NOT NULL UNIQUE,
     phone           VARCHAR(20),
     role            VARCHAR(30) NOT NULL DEFAULT 'ROLE_CUSTOMER'
-                    CHECK (role IN ('ROLE_CUSTOMER', 'ROLE_ADMIN', 'ROLE_TECHNICIAN')),
+                    CHECK (role IN ('ROLE_CUSTOMER', 'ROLE_ADMIN', 'ROLE_WAREHOUSE', 'ROLE_TECHNICIAN')),
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMP NOT NULL DEFAULT NOW()
 );

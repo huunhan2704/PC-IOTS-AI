@@ -457,4 +457,141 @@ public class GeneralAppService {
 
         return productMapper.toResponse(saved);
     }
+
+    @Transactional(readOnly = true)
+    public AdminDto.RevenueReportResponse getRevenueReport(LocalDate startDate, LocalDate endDate) {
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        LocalDate start = startDate != null ? startDate : end.minusDays(29);
+        LocalDateTime startDt = start.atStartOfDay();
+        LocalDateTime endDt = end.atTime(23, 59, 59);
+
+        List<Order> allOrdersInRange = orderRepository.findAll(Sort.by("createdAt").descending()).stream()
+                .filter(o -> o.getCreatedAt() != null && !o.getCreatedAt().isBefore(startDt) && !o.getCreatedAt().isAfter(endDt))
+                .collect(Collectors.toList());
+
+        BigDecimal totalRevenue = BigDecimal.ZERO;
+        long totalOrders = allOrdersInRange.size();
+        long completedOrders = 0;
+        long cancelledOrders = 0;
+        long totalItemsSold = 0;
+
+        Map<Long, AdminDto.ProductSalesItem> productSalesMap = new LinkedHashMap<>();
+        Map<String, BigDecimal> categoryRevMap = new LinkedHashMap<>();
+        Map<String, BigDecimal> dayRevMap = new LinkedHashMap<>();
+        Map<String, Long> dayOrderMap = new LinkedHashMap<>();
+
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM");
+        for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
+            String lbl = d.format(dtf);
+            dayRevMap.put(lbl, BigDecimal.ZERO);
+            dayOrderMap.put(lbl, 0L);
+        }
+
+        List<OrderDto.Response> orderDtos = new ArrayList<>();
+
+        for (Order o : allOrdersInRange) {
+            if (o.getOrderStatus() == OrderStatus.DA_HUY) {
+                cancelledOrders++;
+            } else {
+                if (o.getOrderStatus() == OrderStatus.DA_GIAO) {
+                    completedOrders++;
+                }
+                totalRevenue = totalRevenue.add(o.getFinalAmount() != null ? o.getFinalAmount() : BigDecimal.ZERO);
+
+                String dayLbl = o.getCreatedAt().format(dtf);
+                if (dayRevMap.containsKey(dayLbl)) {
+                    dayRevMap.put(dayLbl, dayRevMap.get(dayLbl).add(o.getFinalAmount()));
+                    dayOrderMap.put(dayLbl, dayOrderMap.get(dayLbl) + 1);
+                }
+
+                if (o.getItems() != null) {
+                    for (OrderItem item : o.getItems()) {
+                        totalItemsSold += item.getQuantity();
+                        Product p = item.getProduct();
+                        Long pid = p != null ? p.getId() : -1L;
+                        String pName = item.getProductName();
+                        String catName = (p != null && p.getCategory() != null) ? p.getCategory().getName() : "Khác";
+                        String brand = p != null ? p.getBrand() : "";
+
+                        AdminDto.ProductSalesItem psi = productSalesMap.computeIfAbsent(pid, k -> AdminDto.ProductSalesItem.builder()
+                                .productId(pid)
+                                .productName(pName)
+                                .categoryName(catName)
+                                .brand(brand)
+                                .quantitySold(0L)
+                                .revenue(BigDecimal.ZERO)
+                                .build());
+                        psi.setQuantitySold(psi.getQuantitySold() + item.getQuantity());
+                        psi.setRevenue(psi.getRevenue().add(item.getSubtotal() != null ? item.getSubtotal() : BigDecimal.ZERO));
+
+                        categoryRevMap.merge(catName, item.getSubtotal() != null ? item.getSubtotal() : BigDecimal.ZERO, BigDecimal::add);
+                    }
+                }
+            }
+
+            List<OrderDto.ItemResponse> itemDtos = o.getItems() != null ? o.getItems().stream()
+                    .map(it -> OrderDto.ItemResponse.builder()
+                            .id(it.getId())
+                            .productId(it.getProduct() != null ? it.getProduct().getId() : null)
+                            .productName(it.getProductName())
+                            .imageUrl(it.getProduct() != null ? it.getProduct().getImageUrl() : null)
+                            .unitPrice(it.getUnitPrice())
+                            .quantity(it.getQuantity())
+                            .subtotal(it.getSubtotal())
+                            .build())
+                    .collect(Collectors.toList()) : List.of();
+
+            orderDtos.add(OrderDto.Response.builder()
+                    .id(o.getId())
+                    .orderCode(o.getOrderCode())
+                    .customerName(o.getCustomerName())
+                    .phone(o.getPhone())
+                    .shippingAddress(o.getShippingAddress())
+                    .city(o.getCity())
+                    .paymentMethod(o.getPaymentMethod().name())
+                    .paymentStatus(o.getPaymentStatus().name())
+                    .orderStatus(o.getOrderStatus().name())
+                    .totalAmount(o.getTotalAmount())
+                    .discountAmount(o.getDiscountAmount())
+                    .couponCode(o.getCouponCode())
+                    .shippingFee(o.getShippingFee())
+                    .finalAmount(o.getFinalAmount())
+                    .note(o.getNote())
+                    .createdAt(o.getCreatedAt().toString())
+                    .items(itemDtos)
+                    .build());
+        }
+
+        long activeOrdersCount = totalOrders - cancelledOrders;
+        BigDecimal avgOrderValue = activeOrdersCount > 0
+                ? totalRevenue.divide(BigDecimal.valueOf(activeOrdersCount), 0, java.math.RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        List<AdminDto.RevenueByTime> revByDay = new ArrayList<>();
+        dayRevMap.forEach((lbl, rev) -> revByDay.add(new AdminDto.RevenueByTime(lbl, rev, dayOrderMap.get(lbl))));
+
+        List<AdminDto.CategoryShare> catShare = categoryRevMap.entrySet().stream()
+                .map(e -> new AdminDto.CategoryShare(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+
+        List<AdminDto.ProductSalesItem> productSales = productSalesMap.values().stream()
+                .sorted(Comparator.comparing(AdminDto.ProductSalesItem::getRevenue).reversed())
+                .collect(Collectors.toList());
+
+        return AdminDto.RevenueReportResponse.builder()
+                .startDate(start.toString())
+                .endDate(end.toString())
+                .totalRevenue(totalRevenue)
+                .totalOrders(totalOrders)
+                .completedOrders(completedOrders)
+                .cancelledOrders(cancelledOrders)
+                .totalItemsSold(totalItemsSold)
+                .averageOrderValue(avgOrderValue)
+                .revenueByDay(revByDay)
+                .revenueByMonth(getAdminDashboard().getRevenueByMonth())
+                .categoryShare(catShare)
+                .productSales(productSales)
+                .orders(orderDtos)
+                .build();
+    }
 }

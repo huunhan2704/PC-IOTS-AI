@@ -121,4 +121,38 @@ public class PcBuilderDto {
         private ProductDto.Response cooler;
         private ProductDto.Response caseProduct;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class AiSuggestRequest {
+        private BigDecimal budget;
+        private String purpose; // GAMING | OFFICE | WORKSTATION
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class AiSuggestResponse {
+        private boolean withinBudget;
+        private BigDecimal budget;
+        private BigDecimal totalPrice;
+        private BigDecimal remainingBudget;
+        private Integer totalTdp;
+        private Integer recommendedPsu;
+        private String aiSummary;
+        private ProductDto.Response cpu;
+        private ProductDto.Response mainboard;
+        private ProductDto.Response ram;
+        private ProductDto.Response gpu;
+        private ProductDto.Response storage;
+        private ProductDto.Response psu;
+        private ProductDto.Response cooler;
+        private ProductDto.Response caseProduct;
+    }
 }

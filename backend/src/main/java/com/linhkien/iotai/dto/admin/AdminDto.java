@@ -64,4 +64,39 @@ public class AdminDto {
         private List<IotDto.AlertResponse> recentAlerts;
         private List<ProductDto.Response> lowStockProducts;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ProductSalesItem {
+        private Long productId;
+        private String productName;
+        private String categoryName;
+        private String brand;
+        private Long quantitySold;
+        private BigDecimal revenue;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class RevenueReportResponse {
+        private String startDate;
+        private String endDate;
+        private BigDecimal totalRevenue;
+        private Long totalOrders;
+        private Long completedOrders;
+        private Long cancelledOrders;
+        private Long totalItemsSold;
+        private BigDecimal averageOrderValue;
+        private List<RevenueByTime> revenueByDay;
+        private List<RevenueByTime> revenueByMonth;
+        private List<CategoryShare> categoryShare;
+        private List<ProductSalesItem> productSales;
+        private List<com.linhkien.iotai.dto.order.OrderDto.Response> orders;
+    }
 }

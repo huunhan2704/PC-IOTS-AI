@@ -19,6 +19,10 @@ export const builderService = {
     return api.post('/pc-builder/quick-check', { productAId, productBId });
   },
 
+  aiSuggest: async (budget: number, purpose: string = 'GAMING'): Promise<any> => {
+    return api.post('/pc-builder/ai-suggest', { budget, purpose });
+  },
+
   saveBuild: async (data: BuildSelection & { buildName: string }): Promise<PcBuildDto> => {
     return api.post('/pc-builder/builds', data);
   },

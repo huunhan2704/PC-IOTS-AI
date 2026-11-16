@@ -2,6 +2,7 @@ package com.linhkien.iotai.service;
 
 import com.linhkien.iotai.dto.order.OrderDto;
 import com.linhkien.iotai.entity.*;
+import com.linhkien.iotai.entity.enums.DeviceStatus;
 import com.linhkien.iotai.entity.enums.DiscountType;
 import com.linhkien.iotai.entity.enums.OrderStatus;
 import com.linhkien.iotai.entity.enums.PaymentMethod;
@@ -34,6 +35,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final CouponRepository couponRepository;
     private final UserRepository userRepository;
+    private final IotDeviceRepository iotDeviceRepository;
     private final InventoryLogRepository inventoryLogRepository;
     private final VietQrService vietQrService;
     private final ProductMapper productMapper;
@@ -227,6 +229,58 @@ public class OrderService {
         order.setItems(orderItems);
 
         Order savedOrder = orderRepository.save(order);
+
+        // 5.5 Tự động cấp & kích hoạt sẵn 1 ESP32 Node IoT nếu đơn hàng là 1 bộ PC (có CPU + Mainboard + RAM + PSU, hoặc >= 5 nhóm linh kiện PC)
+        if (user != null) {
+            Product boughtCpu = null, boughtMb = null, boughtRam = null, boughtGpu = null, boughtPsu = null, boughtCooler = null;
+            Set<String> catSlugs = new HashSet<>();
+            for (OrderItem oi : orderItems) {
+                Product prod = oi.getProduct();
+                if (prod != null && prod.getCategory() != null && prod.getCategory().getSlug() != null) {
+                    String slug = prod.getCategory().getSlug().toLowerCase();
+                    catSlugs.add(slug);
+                    switch (slug) {
+                        case "cpu" -> boughtCpu = prod;
+                        case "mainboard" -> boughtMb = prod;
+                        case "ram" -> boughtRam = prod;
+                        case "vga" -> boughtGpu = prod;
+                        case "psu" -> boughtPsu = prod;
+                        case "cooler" -> boughtCooler = prod;
+                    }
+                }
+            }
+            boolean isFullPcSet = (boughtCpu != null && boughtMb != null && boughtRam != null && boughtPsu != null) || catSlugs.size() >= 5;
+            if (isFullPcSet) {
+                String randomSuffix = String.valueOf(ThreadLocalRandom.current().nextInt(1000, 9999));
+                String deviceCode = "PC-" + user.getUsername().toUpperCase().replaceAll("[^A-Z0-9]", "") + "-" + randomSuffix;
+                while (iotDeviceRepository.findByDeviceCode(deviceCode).isPresent()) {
+                    deviceCode = "PC-" + user.getUsername().toUpperCase().replaceAll("[^A-Z0-9]", "") + "-" + ThreadLocalRandom.current().nextInt(1000, 9999);
+                }
+
+                IotDevice autoDevice = IotDevice.builder()
+                        .user(user)
+                        .deviceCode(deviceCode)
+                        .deviceName("Bộ PC Lắp Ráp Kèm ESP32 (" + savedOrder.getOrderCode() + ")")
+                        .status(DeviceStatus.OFFLINE)
+                        .esp32Ip("192.168.1." + ThreadLocalRandom.current().nextInt(100, 250))
+                        .roomLocation(req.getCity() != null ? req.getCity() : "Nhà khách hàng")
+                        .currentScenario("IDLE")
+                        .currentCpu(boughtCpu)
+                        .currentMainboard(boughtMb)
+                        .currentRam(boughtRam)
+                        .currentGpu(boughtGpu)
+                        .currentPsu(boughtPsu)
+                        .currentCooler(boughtCooler)
+                        .build();
+
+                iotDeviceRepository.save(autoDevice);
+
+                String extraNote = "[TẶNG KÈM ESP32 ĐÃ KÍCH HOẠT] Mã Node IoT: " + deviceCode + " (Đã gắn sẵn vào tài khoản " + user.getUsername() + ")";
+                savedOrder.setNote((savedOrder.getNote() != null && !savedOrder.getNote().isBlank()) ? savedOrder.getNote() + " | " + extraNote : extraNote);
+                savedOrder = orderRepository.save(savedOrder);
+                log.info("Auto-provisioned ESP32 IoT device {} for user {} on PC order {}", deviceCode, user.getUsername(), savedOrder.getOrderCode());
+            }
+        }
 
         // 6. Publish RabbitMQ event if enabled
         if (rabbitmqEnabled && rabbitTemplate.isPresent()) {

@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { PriceTag } from '@/components/ui/PriceTag';
 import { PcSlot, ProductDto } from '@/types';
 import { builderService } from '@/services/builderService';
+import { productService } from '@/services/productService';
 import { useBuilderStore } from '@/store/builderStore';
 
 interface ProductPickerModalProps {
@@ -36,11 +37,22 @@ export const ProductPickerModal: React.FC<ProductPickerModalProps> = ({
     caseId: caseProduct?.id,
   };
 
-  const { data: products = [], isLoading } = useQuery({
+  const [onlyCompatible, setOnlyCompatible] = useState(true);
+
+  const { data: compatibleProducts = [], isLoading: isLoadingCompatible } = useQuery({
     queryKey: ['compatible-products', slot, selection],
     queryFn: () => builderService.getCompatibleProducts(slot, selection),
-    enabled: isOpen,
+    enabled: isOpen && onlyCompatible,
   });
+
+  const { data: allCategoryProducts, isLoading: isLoadingAll } = useQuery({
+    queryKey: ['all-slot-products', slot],
+    queryFn: () => productService.getProducts({ category: slot.toLowerCase(), size: 100 }),
+    enabled: isOpen && !onlyCompatible,
+  });
+
+  const products = onlyCompatible ? compatibleProducts : (allCategoryProducts?.content || []);
+  const isLoading = onlyCompatible ? isLoadingCompatible : isLoadingAll;
 
   const filtered = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -48,18 +60,32 @@ export const ProductPickerModal: React.FC<ProductPickerModalProps> = ({
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Chọn ${slotLabel} tương thích`} maxWidth="2xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Chọn ${slotLabel}`} maxWidth="2xl">
       <div className="space-y-4">
-        {/* Search input */}
-        <div className="relative">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Tìm kiếm ${slotLabel}...`}
-            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500"
-          />
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+        {/* Search input & Toggle */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={`Tìm kiếm ${slotLabel}...`}
+              className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer select-none bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 shrink-0 hover:border-slate-700 transition">
+            <input
+              type="checkbox"
+              checked={onlyCompatible}
+              onChange={(e) => setOnlyCompatible(e.target.checked)}
+              className="w-3.5 h-3.5 rounded text-sky-500 focus:ring-sky-500/20 bg-slate-900 border-slate-700"
+            />
+            <span className="text-xs font-medium text-slate-300">
+              Chỉ hiện linh kiện tương thích
+            </span>
+          </label>
         </div>
 
         {/* Product List */}

@@ -8,7 +8,9 @@ import com.linhkien.iotai.dto.iot.IotDto;
 import com.linhkien.iotai.dto.order.OrderDto;
 import com.linhkien.iotai.dto.product.ProductDto;
 import com.linhkien.iotai.entity.*;
+import com.linhkien.iotai.entity.enums.DeviceStatus;
 import com.linhkien.iotai.entity.enums.OrderStatus;
+import com.linhkien.iotai.entity.enums.Role;
 import com.linhkien.iotai.exception.ResourceNotFoundException;
 import com.linhkien.iotai.repository.*;
 import com.linhkien.iotai.security.UserPrincipal;
@@ -25,15 +27,16 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
-@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class AdminController {
 
@@ -44,15 +47,29 @@ public class AdminController {
     private final OrderRepository orderRepository;
     private final IotDeviceRepository deviceRepository;
     private final IotAlertRepository alertRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     private final ProductMapper productMapper;
     private final ObjectMapper objectMapper;
 
     @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<AdminDto.DashboardResponse>> getDashboard() {
         return ResponseEntity.ok(ApiResponse.ok(generalAppService.getAdminDashboard()));
     }
 
+    @GetMapping("/revenue-report")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<AdminDto.RevenueReportResponse>> getRevenueReport(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        java.time.LocalDate start = (startDate != null && !startDate.isBlank()) ? java.time.LocalDate.parse(startDate) : null;
+        java.time.LocalDate end = (endDate != null && !endDate.isBlank()) ? java.time.LocalDate.parse(endDate) : null;
+        return ResponseEntity.ok(ApiResponse.ok(generalAppService.getRevenueReport(start, end)));
+    }
+
     @GetMapping("/products")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE')")
     public ResponseEntity<ApiResponse<PageResponse<ProductDto.Response>>> getAdminProducts(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
@@ -248,11 +265,116 @@ public class AdminController {
     }
 
     @GetMapping("/devices")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<List<IotDto.DeviceResponse>>> getDevices() {
         return ResponseEntity.ok(ApiResponse.ok(generalAppService.getUserDevices(null, "ROLE_ADMIN")));
     }
 
+    @GetMapping("/users/summary")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getUserSummaries() {
+        List<Map<String, Object>> users = userRepository.findAll(Sort.by("id").ascending()).stream()
+                .map(u -> {
+                    Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("id", u.getId());
+                    m.put("username", u.getUsername());
+                    m.put("fullName", u.getFullName());
+                    m.put("role", u.getRole().name());
+                    return m;
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.ok(users));
+    }
+
+    @PostMapping("/devices")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    public ResponseEntity<ApiResponse<IotDto.DeviceResponse>> createDevice(@RequestBody Map<String, Object> req,
+                                                                           @AuthenticationPrincipal UserPrincipal user) {
+        String deviceCode = (String) req.get("deviceCode");
+        if (deviceCode == null || deviceCode.isBlank()) {
+            throw new IllegalArgumentException("Mã thiết bị (deviceCode) không được để trống");
+        }
+        if (deviceRepository.findByDeviceCode(deviceCode.trim()).isPresent()) {
+            throw new IllegalArgumentException("Mã thiết bị đã tồn tại: " + deviceCode);
+        }
+
+        IotDevice device = IotDevice.builder()
+                .deviceCode(deviceCode.trim().toUpperCase())
+                .deviceName((String) req.getOrDefault("deviceName", "Thiết bị IoT mới"))
+                .macAddress((String) req.get("macAddress"))
+                .esp32Ip((String) req.get("esp32Ip"))
+                .roomLocation((String) req.getOrDefault("roomLocation", "Phòng kỹ thuật"))
+                .status(DeviceStatus.OFFLINE)
+                .currentScenario((String) req.getOrDefault("currentScenario", "IDLE"))
+                .build();
+
+        if (req.get("userId") != null) {
+            Long ownerId = ((Number) req.get("userId")).longValue();
+            userRepository.findById(ownerId).ifPresent(device::setUser);
+        } else if (user != null) {
+            userRepository.findById(user.getId()).ifPresent(device::setUser);
+        }
+
+        IotDevice saved = deviceRepository.save(device);
+        IotDto.DeviceResponse res = IotDto.DeviceResponse.builder()
+                .id(saved.getId())
+                .userId(saved.getUser() != null ? saved.getUser().getId() : null)
+                .ownerName(saved.getUser() != null ? saved.getUser().getFullName() : null)
+                .deviceCode(saved.getDeviceCode())
+                .deviceName(saved.getDeviceName())
+                .macAddress(saved.getMacAddress())
+                .status(saved.getStatus().name())
+                .esp32Ip(saved.getEsp32Ip())
+                .roomLocation(saved.getRoomLocation())
+                .currentScenario(saved.getCurrentScenario())
+                .build();
+        return ResponseEntity.ok(ApiResponse.ok("Thêm thiết bị IoT mới thành công (Trạng thái ban đầu: OFFLINE)", res));
+    }
+
+    @PutMapping("/devices/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    public ResponseEntity<ApiResponse<IotDto.DeviceResponse>> updateDevice(@PathVariable Long id,
+                                                                           @RequestBody Map<String, Object> req) {
+        IotDevice device = deviceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Thiết bị IoT không tồn tại: " + id));
+
+        if (req.get("deviceName") != null) device.setDeviceName((String) req.get("deviceName"));
+        if (req.get("macAddress") != null) device.setMacAddress((String) req.get("macAddress"));
+        if (req.get("esp32Ip") != null) device.setEsp32Ip((String) req.get("esp32Ip"));
+        if (req.get("roomLocation") != null) device.setRoomLocation((String) req.get("roomLocation"));
+        if (req.get("currentScenario") != null) device.setCurrentScenario((String) req.get("currentScenario"));
+        if (req.get("userId") != null) {
+            Long ownerId = ((Number) req.get("userId")).longValue();
+            userRepository.findById(ownerId).ifPresent(device::setUser);
+        }
+
+        IotDevice saved = deviceRepository.save(device);
+        IotDto.DeviceResponse res = IotDto.DeviceResponse.builder()
+                .id(saved.getId())
+                .userId(saved.getUser() != null ? saved.getUser().getId() : null)
+                .ownerName(saved.getUser() != null ? saved.getUser().getFullName() : null)
+                .deviceCode(saved.getDeviceCode())
+                .deviceName(saved.getDeviceName())
+                .macAddress(saved.getMacAddress())
+                .status(saved.getStatus().name())
+                .esp32Ip(saved.getEsp32Ip())
+                .roomLocation(saved.getRoomLocation())
+                .currentScenario(saved.getCurrentScenario())
+                .build();
+        return ResponseEntity.ok(ApiResponse.ok("Cập nhật thiết bị IoT thành công", res));
+    }
+
+    @DeleteMapping("/devices/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    public ResponseEntity<ApiResponse<Void>> deleteDevice(@PathVariable Long id) {
+        IotDevice device = deviceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Thiết bị IoT không tồn tại: " + id));
+        deviceRepository.delete(device);
+        return ResponseEntity.ok(ApiResponse.ok("Đã xóa thiết bị IoT thành công", null));
+    }
+
     @GetMapping("/alerts")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<List<IotDto.AlertResponse>>> getRecentAlerts() {
         List<IotDto.AlertResponse> list = alertRepository.findRecentAlerts(PageRequest.of(0, 100)).stream()
                 .map(a -> IotDto.AlertResponse.builder()
@@ -266,5 +388,86 @@ public class AdminController {
                         .build())
                 .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.ok(list));
+    }
+
+    // ==================== USER & ROLE MANAGEMENT (ADMIN ONLY) ====================
+
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsers() {
+        List<Map<String, Object>> users = userRepository.findAll(Sort.by("id").ascending()).stream()
+                .map(u -> {
+                    Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("id", u.getId());
+                    m.put("username", u.getUsername());
+                    m.put("fullName", u.getFullName());
+                    m.put("email", u.getEmail());
+                    m.put("phone", u.getPhone());
+                    m.put("role", u.getRole().name());
+                    m.put("isActive", u.getIsActive());
+                    m.put("createdAt", u.getCreatedAt() != null ? u.getCreatedAt().toString() : null);
+                    return m;
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.ok(users));
+    }
+
+    @PostMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createUser(@RequestBody Map<String, Object> req) {
+        String username = ((String) req.get("username")).trim();
+        String email = ((String) req.get("email")).trim();
+        String password = (String) req.getOrDefault("password", "123456");
+        String fullName = (String) req.get("fullName");
+        String phone = (String) req.get("phone");
+        String roleStr = (String) req.getOrDefault("role", "ROLE_CUSTOMER");
+
+        if (userRepository.existsByUsername(username)) {
+            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại");
+        }
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("Email đã tồn tại");
+        }
+
+        User newUser = User.builder()
+                .username(username)
+                .passwordHash(passwordEncoder.encode(password))
+                .fullName(fullName)
+                .email(email)
+                .phone(phone)
+                .role(Role.valueOf(roleStr))
+                .isActive(true)
+                .build();
+
+        User saved = userRepository.save(newUser);
+        Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put("id", saved.getId());
+        m.put("username", saved.getUsername());
+        m.put("fullName", saved.getFullName());
+        m.put("email", saved.getEmail());
+        m.put("phone", saved.getPhone());
+        m.put("role", saved.getRole().name());
+        m.put("isActive", saved.getIsActive());
+        return ResponseEntity.ok(ApiResponse.ok("Tạo tài khoản nhân viên/người dùng thành công", m));
+    }
+
+    @PatchMapping("/users/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> updateUserRole(@PathVariable Long id, @RequestBody Map<String, String> req) {
+        User target = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + id));
+        target.setRole(Role.valueOf(req.get("role")));
+        userRepository.save(target);
+        return ResponseEntity.ok(ApiResponse.ok("Cập nhật phân quyền thành công", null));
+    }
+
+    @PatchMapping("/users/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> toggleUserStatus(@PathVariable Long id, @RequestBody Map<String, Boolean> req) {
+        User target = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + id));
+        target.setIsActive(Boolean.TRUE.equals(req.get("isActive")));
+        userRepository.save(target);
+        return ResponseEntity.ok(ApiResponse.ok("Cập nhật trạng thái tài khoản thành công", null));
     }
 }

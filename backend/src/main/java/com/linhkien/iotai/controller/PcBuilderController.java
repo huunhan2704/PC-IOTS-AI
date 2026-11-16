@@ -57,6 +57,11 @@ public class PcBuilderController {
         return ResponseEntity.ok(ApiResponse.ok(pcBuilderService.quickCheck(request.getProductAId(), request.getProductBId())));
     }
 
+    @PostMapping("/ai-suggest")
+    public ResponseEntity<ApiResponse<PcBuilderDto.AiSuggestResponse>> aiSuggest(@RequestBody PcBuilderDto.AiSuggestRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(pcBuilderService.aiSuggestBuild(request.getBudget(), request.getPurpose())));
+    }
+
     @PostMapping("/builds")
     public ResponseEntity<ApiResponse<PcBuilderDto.BuildResponse>> saveBuild(
             @AuthenticationPrincipal UserPrincipal user,

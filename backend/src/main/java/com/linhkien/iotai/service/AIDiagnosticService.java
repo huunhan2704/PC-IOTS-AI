@@ -262,7 +262,7 @@ public class AIDiagnosticService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AiDto.DiagnosticReport getLatestDiagnostic(String deviceCode) {
         return runDiagnostic(deviceCode);
     }
@@ -313,6 +313,105 @@ public class AIDiagnosticService {
                         .build()))
                 .recommendations(Collections.emptyList())
                 .build();
+    }
+
+    @Transactional
+    public AiDto.DiagnosticReport simulateBottleneck(String deviceCode, String scenario) {
+        IotDevice device = deviceRepository.findByDeviceCode(deviceCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Thiết bị không tồn tại: " + deviceCode));
+
+        if ("RESET".equalsIgnoreCase(scenario)) {
+            // Delete simulated bottleneck records from DB and recalculate cleanly
+            telemetryLogRepository.deleteByDeviceIdAndOverheatOrHighStress(device.getId());
+            return runDiagnostic(deviceCode);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        List<TelemetryLog> fakeLogs = new ArrayList<>();
+
+        // Generate 120 synthetic telemetry logs
+        for (int i = 0; i < 120; i++) {
+            LocalDateTime timestamp = now.minusMinutes(120 - i);
+            TelemetryLog logItem = TelemetryLog.builder()
+                    .device(device)
+                    .recordedAt(timestamp)
+                    .build();
+
+            switch (scenario != null ? scenario.toUpperCase() : "ALL") {
+                case "RAM":
+                    // Ram bottleneck: RAM > 90%, normal CPU/GPU
+                    logItem.setCpuLoad(25.0f + (float)(Math.random() * 15));
+                    logItem.setGpuLoad(15.0f + (float)(Math.random() * 10));
+                    logItem.setRamUsage(92.0f + (float)(Math.random() * 6));
+                    logItem.setCpuTemp(48.0f + (float)(Math.random() * 5));
+                    logItem.setGpuTemp(44.0f + (float)(Math.random() * 4));
+                    logItem.setPowerDrawW(150 + (int)(Math.random() * 30));
+                    logItem.setFanSpeedRpm(1200 + (int)(Math.random() * 150));
+                    break;
+
+                case "CPU":
+                    // CPU bottleneck: CPU > 95%, GPU < 35%
+                    logItem.setCpuLoad(96.0f + (float)(Math.random() * 3.8));
+                    logItem.setGpuLoad(18.0f + (float)(Math.random() * 12));
+                    logItem.setRamUsage(55.0f + (float)(Math.random() * 15));
+                    logItem.setCpuTemp(72.0f + (float)(Math.random() * 6));
+                    logItem.setGpuTemp(46.0f + (float)(Math.random() * 5));
+                    logItem.setPowerDrawW(220 + (int)(Math.random() * 40));
+                    logItem.setFanSpeedRpm(1700 + (int)(Math.random() * 200));
+                    break;
+
+                case "THERMAL":
+                    // Thermal throttling: CPU Temp >= 89°C
+                    logItem.setCpuLoad(80.0f + (float)(Math.random() * 15));
+                    logItem.setGpuLoad(65.0f + (float)(Math.random() * 20));
+                    logItem.setRamUsage(60.0f + (float)(Math.random() * 10));
+                    logItem.setCpuTemp(88.0f + (float)(Math.random() * 6));
+                    logItem.setGpuTemp(79.0f + (float)(Math.random() * 5));
+                    logItem.setPowerDrawW(260 + (int)(Math.random() * 50));
+                    logItem.setFanSpeedRpm(2200 + (int)(Math.random() * 200));
+                    break;
+
+                case "PSU":
+                    // PSU overload: Peak power draw 500W - 540W on 550W PSU
+                    logItem.setCpuLoad(85.0f + (float)(Math.random() * 12));
+                    logItem.setGpuLoad(90.0f + (float)(Math.random() * 8));
+                    logItem.setRamUsage(70.0f + (float)(Math.random() * 10));
+                    logItem.setCpuTemp(75.0f + (float)(Math.random() * 7));
+                    logItem.setGpuTemp(76.0f + (float)(Math.random() * 5));
+                    logItem.setPowerDrawW(490 + (int)(Math.random() * 45));
+                    logItem.setFanSpeedRpm(1900 + (int)(Math.random() * 200));
+                    break;
+
+                case "ALL":
+                default:
+                    // Combination scenario: High RAM + High CPU load + Overheating
+                    logItem.setCpuLoad(96.0f + (float)(Math.random() * 3.5));
+                    logItem.setGpuLoad(28.0f + (float)(Math.random() * 10));
+                    logItem.setRamUsage(92.0f + (float)(Math.random() * 6));
+                    logItem.setCpuTemp(89.0f + (float)(Math.random() * 5));
+                    logItem.setGpuTemp(78.0f + (float)(Math.random() * 6));
+                    logItem.setPowerDrawW(485 + (int)(Math.random() * 45));
+                    logItem.setFanSpeedRpm(2250 + (int)(Math.random() * 150));
+                    break;
+            }
+
+            // Fill all non-null database fields
+            float ramTotal = 16.0f;
+            float ramUsage = logItem.getRamUsage();
+            float ramUsed = Math.round((ramUsage / 100.0f * ramTotal) * 10.0f) / 10.0f;
+
+            logItem.setRamTotalGb(ramTotal);
+            logItem.setRamUsedGb(ramUsed);
+            logItem.setCpuClockMhz(4200);
+            logItem.setAmbientTemp(27.5f + (float)(Math.random() * 2.0));
+            logItem.setAmbientHumidity(58.0f + (float)(Math.random() * 5.0));
+            logItem.setStatusFlag(logItem.getCpuTemp() > 85.0f ? "WARNING" : "NORMAL");
+
+            fakeLogs.add(logItem);
+        }
+
+        telemetryLogRepository.saveAll(fakeLogs);
+        return runDiagnostic(deviceCode);
     }
 
     private float round1(float val) {

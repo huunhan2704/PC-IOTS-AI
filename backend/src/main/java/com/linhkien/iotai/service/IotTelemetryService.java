@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -226,5 +227,24 @@ public class IotTelemetryService {
                 .currentPsu(productMapper.toResponse(d.getCurrentPsu()))
                 .currentCooler(productMapper.toResponse(d.getCurrentCooler()))
                 .build();
+    }
+
+    /**
+     * Tự động chuyển thiết bị sang OFFLINE nếu quá 15 giây không nhận được dữ liệu từ Desktop App / ESP32
+     */
+    @Scheduled(fixedRate = 10000)
+    @Transactional
+    public void checkDeviceHeartbeats() {
+        LocalDateTime threshold = LocalDateTime.now().minusSeconds(15);
+        List<IotDevice> devices = deviceRepository.findAll();
+        for (IotDevice d : devices) {
+            if (d.getStatus() != DeviceStatus.OFFLINE) {
+                if (d.getLastPing() == null || d.getLastPing().isBefore(threshold)) {
+                    d.setStatus(DeviceStatus.OFFLINE);
+                    deviceRepository.save(d);
+                    log.info("Device {} marked OFFLINE due to heartbeat timeout", d.getDeviceCode());
+                }
+            }
+        }
     }
 }

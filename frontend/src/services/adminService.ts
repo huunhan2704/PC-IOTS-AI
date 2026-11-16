@@ -6,6 +6,10 @@ export const adminService = {
     return api.get('/admin/dashboard');
   },
 
+  getRevenueReport: async (params?: { startDate?: string; endDate?: string }): Promise<any> => {
+    return api.get('/admin/revenue-report', { params });
+  },
+
   getProducts: async (params?: { keyword?: string; category?: string; page?: number; size?: number }): Promise<PageResponse<ProductDto>> => {
     return api.get('/admin/products', { params });
   },
@@ -46,7 +50,39 @@ export const adminService = {
     return api.get('/admin/devices');
   },
 
+  createDevice: async (data: any): Promise<DeviceDto> => {
+    return api.post('/admin/devices', data);
+  },
+
+  updateDevice: async (id: number, data: any): Promise<DeviceDto> => {
+    return api.put(`/admin/devices/${id}`, data);
+  },
+
+  deleteDevice: async (id: number): Promise<void> => {
+    return api.delete(`/admin/devices/${id}`);
+  },
+
   getAlerts: async (): Promise<AlertDto[]> => {
     return api.get('/admin/alerts');
+  },
+
+  getUsers: async (): Promise<any[]> => {
+    return api.get('/admin/users');
+  },
+
+  getUserSummaries: async (): Promise<any[]> => {
+    return api.get('/admin/users/summary');
+  },
+
+  createUser: async (data: any): Promise<any> => {
+    return api.post('/admin/users', data);
+  },
+
+  updateUserRole: async (id: number, role: string): Promise<void> => {
+    return api.patch(`/admin/users/${id}/role`, { role });
+  },
+
+  toggleUserStatus: async (id: number, isActive: boolean): Promise<void> => {
+    return api.patch(`/admin/users/${id}/status`, { isActive });
   },
 };

@@ -22,7 +22,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, isAdmin, logout } = useAuthStore();
+  const { user, isAuthenticated, canAccessAdminPanel, logout } = useAuthStore();
   const itemCount = useCartStore((s) => s.getItemCount());
   const { isDark, toggleTheme } = useThemeStore();
 
@@ -240,14 +240,18 @@ export const Header: React.FC = () => {
                       Chuẩn đoán & Tư vấn AI
                     </Link>
 
-                    {isAdmin() && (
+                    {canAccessAdminPanel() && (
                       <Link
                         to="/admin"
                         onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-amber-300 hover:bg-amber-500/10 transition border-t border-slate-800"
                       >
                         <ShieldAlert className="w-4 h-4 text-amber-400" />
-                        Quản trị hệ thống (Admin)
+                        {user?.role === 'ROLE_ADMIN'
+                          ? 'Quản trị hệ thống (Admin)'
+                          : user?.role === 'ROLE_WAREHOUSE'
+                          ? 'Quản lý Kho & Đơn hàng'
+                          : 'Quản lý Thiết bị IoT'}
                       </Link>
                     )}
 

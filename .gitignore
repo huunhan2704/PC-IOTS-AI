@@ -11,6 +11,8 @@ frontend/dist/
 __pycache__/
 *.pyc
 .venv/
+build/
+dist/
 
 # IDE
 .idea/

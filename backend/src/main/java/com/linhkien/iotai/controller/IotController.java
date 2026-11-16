@@ -2,6 +2,9 @@ package com.linhkien.iotai.controller;
 
 import com.linhkien.iotai.dto.ApiResponse;
 import com.linhkien.iotai.dto.iot.IotDto;
+import com.linhkien.iotai.entity.IotDevice;
+import com.linhkien.iotai.exception.ResourceNotFoundException;
+import com.linhkien.iotai.repository.IotDeviceRepository;
 import com.linhkien.iotai.security.UserPrincipal;
 import com.linhkien.iotai.service.GeneralAppService;
 import com.linhkien.iotai.service.InternalSimulatorService;
@@ -23,6 +26,7 @@ public class IotController {
     private final GeneralAppService generalAppService;
     private final InternalSimulatorService simulatorService;
     private final MqttSubscriberService mqttSubscriberService;
+    private final IotDeviceRepository deviceRepository;
 
     @GetMapping("/devices/my")
     public ResponseEntity<ApiResponse<List<IotDto.DeviceResponse>>> getMyDevices(@AuthenticationPrincipal UserPrincipal user) {
@@ -59,5 +63,27 @@ public class IotController {
         simulatorService.setScenario(request.getDeviceCode(), request.getScenario());
         mqttSubscriberService.publishControlCommand(request.getDeviceCode(), request.getScenario());
         return ResponseEntity.ok(ApiResponse.ok("Chuyển kịch bản giả lập sang " + request.getScenario(), request));
+    }
+
+    @PostMapping("/telemetry")
+    public ResponseEntity<ApiResponse<Void>> ingestTelemetryFromDesktop(
+            @AuthenticationPrincipal UserPrincipal user,
+            @RequestBody IotDto.TelemetryResponse telemetry) {
+        if (telemetry.getDeviceCode() == null || telemetry.getDeviceCode().isBlank()) {
+            throw new IllegalArgumentException("deviceCode không được để trống");
+        }
+        String code = telemetry.getDeviceCode().trim().toUpperCase();
+        IotDevice device = deviceRepository.findByDeviceCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Thiết bị không tồn tại: " + code));
+
+        String role = user.getAuthorities().iterator().next().getAuthority();
+        boolean isStaff = "ROLE_ADMIN".equals(role) || "ROLE_TECHNICIAN".equals(role);
+        boolean isOwner = device.getUser() != null && device.getUser().getId().equals(user.getId());
+        if (!isStaff && !isOwner) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền gửi dữ liệu cho mã thiết bị " + code);
+        }
+
+        telemetryService.processTelemetry(code, telemetry);
+        return ResponseEntity.ok(ApiResponse.ok("Đã nhận dữ liệu telemetry từ Desktop Agent", null));
     }
 }

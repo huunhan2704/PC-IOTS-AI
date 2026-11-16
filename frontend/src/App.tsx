@@ -25,8 +25,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAdmin = useAuthStore((s) => s.isAdmin());
-  if (!isAdmin) return <Navigate to="/" replace />;
+  const canAccess = useAuthStore((s) => s.canAccessAdminPanel());
+  if (!canAccess) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 

@@ -34,30 +34,32 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { toast } from 'sonner';
 
+const emptyTelemetry = (code: string): TelemetryDto => ({
+  deviceCode: code,
+  cpuLoad: 0,
+  cpuTemp: 0,
+  cpuClockMhz: 0,
+  ramUsage: 0,
+  ramUsedGb: 0,
+  ramTotalGb: 0,
+  gpuLoad: 0,
+  gpuTemp: 0,
+  fanSpeedRpm: 0,
+  powerDrawW: 0,
+  ambientTemp: 0,
+  ambientHumidity: 0,
+  statusFlag: 'NORMAL',
+  recordedAt: '',
+});
+
 export const frm_DashboardIoT: React.FC = () => {
-  const [selectedDeviceCode, setSelectedDeviceCode] = useState<string>('PC-NHAN-001');
+  const [selectedDeviceCode, setSelectedDeviceCode] = useState<string>('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newDeviceName, setNewDeviceName] = useState('');
   const [newRoomLocation, setNewRoomLocation] = useState('');
 
-  // Live telemetry state
-  const [latestTelemetry, setLatestTelemetry] = useState<TelemetryDto>({
-    deviceCode: 'PC-NHAN-001',
-    cpuLoad: 25.4,
-    cpuTemp: 52.1,
-    cpuClockMhz: 4200,
-    ramUsage: 68.5,
-    ramUsedGb: 10.96,
-    ramTotalGb: 16.0,
-    gpuLoad: 12.0,
-    gpuTemp: 48.0,
-    fanSpeedRpm: 1250,
-    powerDrawW: 180,
-    ambientTemp: 28.5,
-    ambientHumidity: 62.0,
-    statusFlag: 'NORMAL',
-    recordedAt: new Date().toISOString(),
-  });
+  // Live telemetry state (starts at 0 until device actually sends data)
+  const [latestTelemetry, setLatestTelemetry] = useState<TelemetryDto>(() => emptyTelemetry(''));
 
   const [telemetryHistory, setTelemetryHistory] = useState<any[]>([]);
   const [activeAlert, setActiveAlert] = useState<AlertDto | null>(null);
@@ -66,9 +68,22 @@ export const frm_DashboardIoT: React.FC = () => {
   const { data: devices = [], refetch: refetchDevices } = useQuery({
     queryKey: ['my-devices'],
     queryFn: iotService.getMyDevices,
+    refetchInterval: 5000,
   });
 
-  // Load initial telemetry history
+  // Automatically sync selectedDeviceCode with the user's actual devices
+  useEffect(() => {
+    if (devices.length > 0) {
+      const exists = devices.some((d) => d.deviceCode === selectedDeviceCode);
+      if (!selectedDeviceCode || !exists) {
+        setSelectedDeviceCode(devices[0].deviceCode);
+      }
+    } else {
+      setSelectedDeviceCode('');
+    }
+  }, [devices, selectedDeviceCode]);
+
+  // Load initial telemetry history (reset to 0 if device has never sent data)
   useEffect(() => {
     if (selectedDeviceCode) {
       iotService
@@ -86,9 +101,18 @@ export const frm_DashboardIoT: React.FC = () => {
             }));
             setTelemetryHistory(formatted);
             setLatestTelemetry(data[data.length - 1]);
+          } else {
+            setTelemetryHistory([]);
+            setLatestTelemetry(emptyTelemetry(selectedDeviceCode));
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          setTelemetryHistory([]);
+          setLatestTelemetry(emptyTelemetry(selectedDeviceCode));
+        });
+    } else {
+      setTelemetryHistory([]);
+      setLatestTelemetry(emptyTelemetry(''));
     }
   }, [selectedDeviceCode]);
 
@@ -199,6 +223,16 @@ export const frm_DashboardIoT: React.FC = () => {
             </select>
           </div>
 
+          <a
+            href="/LinhKien_IoT_Monitor.exe"
+            download="LinhKien_IoT_Monitor.exe"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm active:scale-95"
+            title="Tải ứng dụng giám sát phần cứng máy tính (.exe)"
+          >
+            <Laptop className="w-3.5 h-3.5" />
+            Tải App (.EXE)
+          </a>
+
           <Button size="sm" variant="outline" onClick={() => setIsAddModalOpen(true)}>
             <Plus className="w-3.5 h-3.5 mr-1" />
             Thêm Node
@@ -207,23 +241,25 @@ export const frm_DashboardIoT: React.FC = () => {
       </div>
 
       {/* Connection & Status Pill Bar */}
-      <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="flex items-center gap-1.5 font-bold">
-            {connected ? (
+            {currentDevice?.status === 'ONLINE' || currentDevice?.status === 'WARNING' ? (
               <span className="inline-flex items-center gap-1.5 text-emerald-400">
-                <Wifi className="w-4 h-4" /> WebSocket Online
+                <Wifi className="w-4 h-4" /> Thiết bị ONLINE (Đang nhận dữ liệu)
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 text-amber-400">
-                <WifiOff className="w-4 h-4" /> Đang kết nối lại...
+              <span className="inline-flex items-center gap-1.5 text-rose-400">
+                <WifiOff className="w-4 h-4" /> Thiết bị OFFLINE (Chưa kết nối Desktop đúng mã {selectedDeviceCode || '...'})
               </span>
             )}
           </span>
           <span className="text-slate-600">|</span>
           <span className="text-slate-400">
             Node:{' '}
-            <strong className="text-slate-200">{currentDevice?.deviceName || selectedDeviceCode}</strong>
+            <strong className="text-slate-200 font-mono">
+              {currentDevice ? `${currentDevice.deviceName} (${currentDevice.deviceCode})` : 'Chưa có thiết bị'}
+            </strong>
           </span>
           {currentDevice?.esp32Ip && (
             <>
@@ -236,7 +272,7 @@ export const frm_DashboardIoT: React.FC = () => {
         </div>
 
         <div className="text-[11px] text-slate-500 font-mono hidden md:block">
-          Cập nhật lần cuối: {latestTelemetry.recordedAt ? latestTelemetry.recordedAt.substring(11, 19) : 'Vừa xong'}
+          Cập nhật lần cuối: {latestTelemetry.recordedAt ? latestTelemetry.recordedAt.substring(11, 19) : 'Chưa có dữ liệu'}
         </div>
       </div>
 

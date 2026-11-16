@@ -7,28 +7,28 @@ export const Footer: React.FC = () => {
     <footer className="mt-20 border-t border-slate-800/80 bg-slate-950 text-slate-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Cột 1: Thông tin đề tài tốt nghiệp */}
+          {/* Cột 1: Thông tin cửa hàng */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center text-slate-950 font-bold">
                 <Cpu className="w-5 h-5" />
               </div>
               <span className="text-base font-extrabold text-slate-100">
-                ĐỒ ÁN TỐT NGHIỆP ĐẠI HỌC
+                LINHKIEN IOT·AI TECH STORE
               </span>
             </div>
             <p className="text-sm font-semibold text-sky-400 leading-relaxed">
-              "ỨNG DỤNG IOTS VÀ AI VÀO HỆ THỐNG WEB BÁN LINH KIỆN MÁY TÍNH"
+              "HỆ THỐNG CUNG CẤP LINH KIỆN PC CHÍNH HÃNG TÍCH HỢP IOT & AI THÔNG MINH"
             </p>
             <div className="text-xs space-y-1.5 text-slate-400">
               <p>
-                <strong className="text-slate-200">Sinh viên thực hiện:</strong> Trần Hữu Nhân
+                <strong className="text-slate-200">Hệ sinh thái:</strong> Linh kiện PC cao cấp, PC Builder kiểm tra tương thích & Giám sát phần cứng
               </p>
               <p>
-                <strong className="text-slate-200">Giảng viên hướng dẫn:</strong> ThS. Nguyễn Thanh Truyền
+                <strong className="text-slate-200">Cam kết dịch vụ:</strong> Bảo hành chính hãng 12 - 36 tháng, hỗ trợ kỹ thuật 24/7
               </p>
               <p>
-                <strong className="text-slate-200">Khoa / Trường:</strong> Khoa Công nghệ Thông tin - Trường Đại học Tài nguyên và Môi trường TP.HCM (HCMUNRE)
+                <strong className="text-slate-200">Công nghệ cốt lõi:</strong> Giám sát cảm biến IoT thời gian thực & Trợ lý AI tối ưu hiệu năng
               </p>
             </div>
           </div>

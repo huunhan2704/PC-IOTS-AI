@@ -264,4 +264,196 @@ public class PcBuilderService {
         if (p.getCategory() == null) return;
         setSelectionSlot(s, p.getCategory().getSlug(), p.getId());
     }
+
+    @Transactional(readOnly = true)
+    public PcBuilderDto.AiSuggestResponse aiSuggestBuild(BigDecimal budget, String purpose) {
+        if (budget == null || budget.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Ngân sách phải lớn hơn 0₫");
+        }
+        String mode = purpose != null ? purpose.toUpperCase().trim() : "GAMING";
+
+        List<Product> all = productRepository.findAll().stream()
+                .filter(p -> Boolean.TRUE.equals(p.getIsActive()) && p.getStockQuantity() != null && p.getStockQuantity() > 0)
+                .collect(Collectors.toList());
+
+        Map<String, List<Product>> byCat = new HashMap<>();
+        for (Product p : all) {
+            if (p.getCategory() != null && p.getCategory().getSlug() != null) {
+                byCat.computeIfAbsent(p.getCategory().getSlug().toLowerCase(), k -> new ArrayList<>()).add(p);
+            }
+        }
+        byCat.values().forEach(list -> list.sort(Comparator.comparing(Product::getPrice)));
+
+        List<Product> cpus = byCat.getOrDefault("cpu", List.of());
+        List<Product> mbs = byCat.getOrDefault("mainboard", List.of());
+        List<Product> rams = byCat.getOrDefault("ram", List.of());
+        List<Product> gpus = byCat.getOrDefault("vga", List.of());
+        List<Product> ssds = byCat.getOrDefault("ssd", List.of());
+        List<Product> psus = byCat.getOrDefault("psu", List.of());
+        List<Product> coolers = byCat.getOrDefault("cooler", List.of());
+        List<Product> cases = byCat.getOrDefault("case", List.of());
+
+        if (cpus.isEmpty() || mbs.isEmpty() || rams.isEmpty() || ssds.isEmpty() || psus.isEmpty() || coolers.isEmpty() || cases.isEmpty()) {
+            throw new IllegalStateException("Kho hàng chưa đủ danh mục linh kiện tối thiểu để ráp máy");
+        }
+
+        // Candidate GPU list: all GPUs + null (iGPU fallback for low budget or Office)
+        List<Product> gpuOptions = new ArrayList<>(gpus);
+        gpuOptions.add(null);
+
+        double bestScore = -1;
+        Product[] bestCombo = null;
+        BigDecimal bestPrice = BigDecimal.ZERO;
+        int bestTdp = 0;
+        int bestRecPsu = 0;
+
+        Product[] cheapestCombo = null;
+        BigDecimal cheapestPrice = null;
+        int cheapestTdp = 0;
+        int cheapestRecPsu = 0;
+
+        Product cheapestSsd = ssds.get(0);
+
+        for (Product cpu : cpus) {
+            String cpuSocket = cpu.getSpecs() != null ? cpu.getSpecs().getSocket() : null;
+            int cpuTdp = cpu.getSpecs() != null ? cpu.getSpecs().getTdp() : 65;
+
+            // Find cheapest compatible cooler (BR04)
+            Product bestCoolerForCpu = coolers.stream()
+                    .filter(c -> c.getSpecs() == null || c.getSpecs().getCoolerTdpRating() == null || c.getSpecs().getCoolerTdpRating() >= cpuTdp)
+                    .findFirst().orElse(null);
+            if (bestCoolerForCpu == null) continue;
+
+            for (Product mb : mbs) {
+                // BR01: Socket match
+                String mbSocket = mb.getSpecs() != null ? mb.getSpecs().getSocket() : null;
+                if (cpuSocket != null && mbSocket != null && !cpuSocket.equalsIgnoreCase(mbSocket)) continue;
+
+                // BR02: RAM generation match
+                String mbRamGen = mb.getSpecs() != null ? mb.getSpecs().getRamGeneration() : null;
+                List<Product> compatRams = rams.stream()
+                        .filter(r -> mbRamGen == null || r.getSpecs() == null || r.getSpecs().getRamGeneration() == null
+                                || mbRamGen.equalsIgnoreCase(r.getSpecs().getRamGeneration()))
+                        .collect(Collectors.toList());
+                if (compatRams.isEmpty()) continue;
+
+                // Pick RAM: cheapest or mid-tier if budget allows
+                List<Product> ramChoices = compatRams.size() > 2
+                        ? List.of(compatRams.get(0), compatRams.get(compatRams.size() / 2))
+                        : compatRams;
+
+                String mbForm = mb.getSpecs() != null ? mb.getSpecs().getFormFactor() : null;
+
+                for (Product ram : ramChoices) {
+                    for (Product gpu : gpuOptions) {
+                        int ssdTdp = cheapestSsd.getSpecs() != null ? cheapestSsd.getSpecs().getTdp() : 5;
+                        int gpuTdp = (gpu != null && gpu.getSpecs() != null) ? gpu.getSpecs().getTdp() : 0;
+                        int totalTdp = 50 + cpuTdp + gpuTdp + ssdTdp;
+                        int recPsu = (int) Math.ceil(totalTdp * 1.25);
+
+                        // BR03: PSU
+                        Product bestPsu = psus.stream()
+                                .filter(p -> p.getSpecs() == null || p.getSpecs().getPsuWattage() == null || p.getSpecs().getPsuWattage() >= recPsu)
+                                .findFirst().orElse(null);
+                        if (bestPsu == null) continue;
+
+                        // BR05 & BR06: Case
+                        Integer gpuLen = (gpu != null && gpu.getSpecs() != null) ? gpu.getSpecs().getGpuLengthMm() : null;
+                        Product bestCase = cases.stream()
+                                .filter(c -> {
+                                    if (c.getSpecs() == null) return true;
+                                    if (mbForm != null && c.getSpecs().getSupportedFormFactors() != null) {
+                                        boolean formOk = Arrays.stream(c.getSpecs().getSupportedFormFactors().split(","))
+                                                .map(s -> s.trim().toUpperCase())
+                                                .anyMatch(s -> s.equals(mbForm.toUpperCase()));
+                                        if (!formOk) return false;
+                                    }
+                                    if (gpuLen != null && c.getSpecs().getMaxGpuLengthMm() != null && gpuLen > c.getSpecs().getMaxGpuLengthMm()) {
+                                        return false;
+                                    }
+                                    return true;
+                                })
+                                .findFirst().orElse(null);
+                        if (bestCase == null) continue;
+
+                        // Also pick best SSD that fits if we have spare budget, default cheapestSsd
+                        BigDecimal sum = cpu.getPrice()
+                                .add(mb.getPrice())
+                                .add(ram.getPrice())
+                                .add(gpu != null ? gpu.getPrice() : BigDecimal.ZERO)
+                                .add(cheapestSsd.getPrice())
+                                .add(bestPsu.getPrice())
+                                .add(bestCoolerForCpu.getPrice())
+                                .add(bestCase.getPrice());
+
+                        if (cheapestPrice == null || sum.compareTo(cheapestPrice) < 0) {
+                            cheapestPrice = sum;
+                            cheapestCombo = new Product[]{cpu, mb, ram, gpu, cheapestSsd, bestPsu, bestCoolerForCpu, bestCase};
+                            cheapestTdp = totalTdp;
+                            cheapestRecPsu = recPsu;
+                        }
+
+                        if (sum.compareTo(budget) <= 0) {
+                            double cpuVal = cpu.getPrice().doubleValue();
+                            double gpuVal = gpu != null ? gpu.getPrice().doubleValue() : 0;
+                            double ramVal = ram.getPrice().doubleValue();
+                            double totalVal = sum.doubleValue();
+
+                            double score;
+                            if ("GAMING".equals(mode)) {
+                                score = (gpu != null ? 5_000_000.0 : 0.0) + gpuVal * 1.5 + cpuVal * 1.1 + totalVal * 0.25;
+                            } else if ("WORKSTATION".equals(mode)) {
+                                score = (gpu != null ? 3_000_000.0 : 0.0) + cpuVal * 1.5 + ramVal * 1.2 + gpuVal * 1.1 + totalVal * 0.2;
+                            } else {
+                                // OFFICE
+                                score = cpuVal * 1.2 + ramVal * 1.1 + totalVal * 0.5;
+                            }
+
+                            if (score > bestScore) {
+                                bestScore = score;
+                                bestCombo = new Product[]{cpu, mb, ram, gpu, cheapestSsd, bestPsu, bestCoolerForCpu, bestCase};
+                                bestPrice = sum;
+                                bestTdp = totalTdp;
+                                bestRecPsu = recPsu;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        boolean withinBudget = bestCombo != null;
+        Product[] chosen = withinBudget ? bestCombo : cheapestCombo;
+        BigDecimal finalPrice = withinBudget ? bestPrice : (cheapestPrice != null ? cheapestPrice : BigDecimal.ZERO);
+        int finalTdp = withinBudget ? bestTdp : cheapestTdp;
+        int finalRecPsu = withinBudget ? bestRecPsu : cheapestRecPsu;
+
+        if (chosen == null) {
+            throw new IllegalStateException("Không tìm thấy tổ hợp linh kiện tương thích trong kho.");
+        }
+
+        String summary = withinBudget
+                ? String.format("AI đã chọn cấu hình %s tối ưu trong ngân sách %,.0f₫ (Tổng: %,.0f₫, Dư: %,.0f₫). Tất cả linh kiện đều còn hàng và tương thích 100%% (BR01-BR06).",
+                mode, budget, finalPrice, budget.subtract(finalPrice))
+                : String.format("Ngân sách %,.0f₫ chưa đủ cho bộ máy đầy đủ trong kho. AI gợi ý cấu hình tương thích tiết kiệm nhất hiện có với tổng giá %,.0f₫.",
+                budget, finalPrice);
+
+        return PcBuilderDto.AiSuggestResponse.builder()
+                .withinBudget(withinBudget)
+                .budget(budget)
+                .totalPrice(finalPrice)
+                .remainingBudget(budget.subtract(finalPrice))
+                .totalTdp(finalTdp)
+                .recommendedPsu(finalRecPsu)
+                .aiSummary(summary)
+                .cpu(productMapper.toResponse(chosen[0]))
+                .mainboard(productMapper.toResponse(chosen[1]))
+                .ram(productMapper.toResponse(chosen[2]))
+                .gpu(chosen[3] != null ? productMapper.toResponse(chosen[3]) : null)
+                .storage(productMapper.toResponse(chosen[4]))
+                .psu(productMapper.toResponse(chosen[5]))
+                .cooler(productMapper.toResponse(chosen[6]))
+                .caseProduct(productMapper.toResponse(chosen[7]))
+                .build();
+    }
 }

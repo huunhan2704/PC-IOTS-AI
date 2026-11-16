@@ -206,3 +206,13 @@ linhkien-iot-ai/
 ├── docker-compose.yml        # Triển khai toàn bộ hệ thống bằng 1 lệnh
 └── README.md                 # Tài liệu hướng dẫn đồ án
 ```
+run 
+--Tab 1: Khởi động Backend (Spring Boot)
+cd C:\Users\Admin\.gemini\antigravity\scratch\linhkien-iot-ai\backend
+mvn spring-boot:run 
+--Tab 2: Khởi động Frontend (Giao diện Web)
+cd C:\Users\Admin\.gemini\antigravity\scratch\linhkien-iot-ai\frontend
+npm run dev
+Tab 3: Khởi động Agent đọc thông số PC thật (Nếu muốn demo thông số máy thật)
+cd C:\Users\Admin\.gemini\antigravity\scratch\linhkien-iot-ai
+python pc_agent.py

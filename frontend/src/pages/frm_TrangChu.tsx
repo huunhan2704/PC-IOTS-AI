@@ -99,7 +99,7 @@ export const frm_TrangChu: React.FC = () => {
           <div className="relative z-10 max-w-2xl space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-sky-500/10 text-sky-400 border border-sky-500/30">
               <Sparkles className="w-3.5 h-3.5" />
-              Đề tài tốt nghiệp CNTT - HCMUNRE 2026
+              Nền Tảng Phần Cứng Thông Minh IoT & AI
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-black text-slate-100 tracking-tight leading-tight">

@@ -10,6 +10,10 @@ export const aiService = {
     return api.post(`/ai/diagnostics/${deviceCode}/run`);
   },
 
+  simulateBottleneck: async (deviceCode: string, scenario: string = 'ALL'): Promise<DiagnosticReport> => {
+    return api.post(`/ai/diagnostics/${deviceCode}/simulate`, null, { params: { scenario } });
+  },
+
   markViewed: async (recommendationId: number): Promise<AiRecommendationDto> => {
     return api.post(`/ai/recommendations/${recommendationId}/viewed`);
   },

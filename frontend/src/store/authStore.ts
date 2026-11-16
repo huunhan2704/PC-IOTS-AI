@@ -9,6 +9,9 @@ interface AuthState {
   logout: () => void;
   isAuthenticated: () => boolean;
   isAdmin: () => boolean;
+  isWarehouse: () => boolean;
+  isTechnician: () => boolean;
+  canAccessAdminPanel: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -20,6 +23,10 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ token: null, user: null }),
       isAuthenticated: () => !!get().token,
       isAdmin: () => get().user?.role === 'ROLE_ADMIN',
+      isWarehouse: () => get().user?.role === 'ROLE_WAREHOUSE',
+      isTechnician: () => get().user?.role === 'ROLE_TECHNICIAN',
+      canAccessAdminPanel: () =>
+        ['ROLE_ADMIN', 'ROLE_WAREHOUSE', 'ROLE_TECHNICIAN'].includes(get().user?.role || ''),
     }),
     {
       name: 'linhkien-auth',

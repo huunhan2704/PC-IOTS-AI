@@ -27,4 +27,8 @@ public interface TelemetryLogRepository extends JpaRepository<TelemetryLog, Long
 
     @Query("SELECT t FROM TelemetryLog t WHERE t.device.id = :deviceId AND t.recordedAt >= :since ORDER BY t.recordedAt DESC")
     List<TelemetryLog> findByDeviceIdAndRecordedAtAfter(@Param("deviceId") Long deviceId, @Param("since") LocalDateTime since);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM TelemetryLog t WHERE t.device.id = :deviceId AND (t.cpuTemp > 65.0 OR t.cpuLoad > 60.0 OR t.ramUsage > 70.0 OR t.powerDrawW > 300)")
+    void deleteByDeviceIdAndOverheatOrHighStress(@Param("deviceId") Long deviceId);
 }

@@ -2,7 +2,7 @@
 // CONTRACT TYPES: ỨNG DỤNG IOTS VÀ AI VÀO HỆ THỐNG WEB BÁN LINH KIỆN MÁY TÍNH
 // ==============================================================================
 
-export type Role = 'ROLE_CUSTOMER' | 'ROLE_ADMIN' | 'ROLE_TECHNICIAN';
+export type Role = 'ROLE_CUSTOMER' | 'ROLE_ADMIN' | 'ROLE_WAREHOUSE' | 'ROLE_TECHNICIAN';
 
 export interface UserDto {
   id: number;
@@ -11,6 +11,7 @@ export interface UserDto {
   email: string;
   phone: string;
   role: Role;
+  isActive?: boolean;
   createdAt: string;
 }
 

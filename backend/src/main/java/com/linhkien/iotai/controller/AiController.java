@@ -24,6 +24,13 @@ public class AiController {
         return ResponseEntity.ok(ApiResponse.ok("Chuẩn đoán hệ thống hoàn tất", aiDiagnosticService.runDiagnostic(deviceCode)));
     }
 
+    @PostMapping("/diagnostics/{deviceCode}/simulate")
+    public ResponseEntity<ApiResponse<AiDto.DiagnosticReport>> simulateBottleneck(
+            @PathVariable String deviceCode,
+            @RequestParam(required = false, defaultValue = "ALL") String scenario) {
+        return ResponseEntity.ok(ApiResponse.ok("Đã nạp chuỗi telemetry mô phỏng nghẽn và hoàn tất phân tích", aiDiagnosticService.simulateBottleneck(deviceCode, scenario)));
+    }
+
     @PostMapping("/recommendations/{id}/viewed")
     public ResponseEntity<ApiResponse<Void>> markViewed(@PathVariable Long id) {
         aiDiagnosticService.markViewed(id);
