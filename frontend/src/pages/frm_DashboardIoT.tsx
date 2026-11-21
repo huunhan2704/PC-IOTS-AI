@@ -85,8 +85,10 @@ export const frm_DashboardIoT: React.FC = () => {
     }
   }, [devices, selectedDeviceCode]);
 
-  // Load initial telemetry history (reset to 0 if device has never sent data)
+  // Load initial telemetry history (always start gauges at 0 until live data arrives)
   useEffect(() => {
+    setLatestTelemetry(emptyTelemetry(selectedDeviceCode || ''));
+    setActiveAlert(null);
     if (selectedDeviceCode) {
       iotService
         .getTelemetryHistory(selectedDeviceCode, 30)
@@ -102,19 +104,15 @@ export const frm_DashboardIoT: React.FC = () => {
               ambientTemp: d.ambientTemp,
             }));
             setTelemetryHistory(formatted);
-            setLatestTelemetry(data[data.length - 1]);
           } else {
             setTelemetryHistory([]);
-            setLatestTelemetry(emptyTelemetry(selectedDeviceCode));
           }
         })
         .catch(() => {
           setTelemetryHistory([]);
-          setLatestTelemetry(emptyTelemetry(selectedDeviceCode));
         });
     } else {
       setTelemetryHistory([]);
-      setLatestTelemetry(emptyTelemetry(''));
     }
   }, [selectedDeviceCode]);
 
