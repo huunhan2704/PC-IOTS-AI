@@ -16,7 +16,6 @@ spring:
     properties:
       hibernate:
         dialect: ${SPRING_JPA_DIALECT:org.hibernate.dialect.SQLServerDialect}
-        use_nationalized_character_data: true
         format_sql: true
     defer-datasource-initialization: false
   sql:
