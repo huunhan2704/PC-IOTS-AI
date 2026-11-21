@@ -132,6 +132,7 @@ export interface OrderItemDto {
   unitPrice: number;
   quantity: number;
   subtotal: number;
+  warrantyMonths?: number;
 }
 
 export interface VietQrPaymentInfo {
@@ -264,6 +265,7 @@ export interface TelemetryDto {
   powerDrawW: number;
   ambientTemp: number;
   ambientHumidity: number;
+  dustDensity?: number;
   statusFlag: string;
   recordedAt: string;
 }

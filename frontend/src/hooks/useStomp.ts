@@ -5,10 +5,13 @@ import SockJS from 'sockjs-client';
 let globalClient: Client | null = null;
 let clientSubscribers = 0;
 
+const rawBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+const wsEndpoint = rawBaseUrl ? `${rawBaseUrl.replace(/\/$/, '')}/ws` : '/ws';
+
 function getStompClient(): Client {
   if (!globalClient) {
     globalClient = new Client({
-      webSocketFactory: () => new SockJS('/ws'),
+      webSocketFactory: () => new SockJS(wsEndpoint),
       reconnectDelay: 3000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,

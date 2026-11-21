@@ -74,10 +74,15 @@ export const OrderTrackingPage: React.FC = () => {
           </div>
 
           <div className="space-y-2 text-xs">
-            <h4 className="font-bold text-slate-300 uppercase tracking-wider">Danh sách linh kiện:</h4>
+            <h4 className="font-bold text-slate-300 uppercase tracking-wider">Danh sách linh kiện & bảo hành:</h4>
             {order.items.map((i) => (
-              <div key={i.id} className="flex justify-between text-slate-300">
-                <span>{i.productName} × {i.quantity}</span>
+              <div key={i.id} className="flex justify-between items-center text-slate-300 py-1 border-b border-slate-800/60 last:border-0">
+                <div>
+                  <span>{i.productName} × {i.quantity}</span>
+                  <span className="ml-2 inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    BH {i.warrantyMonths ?? 12} tháng
+                  </span>
+                </div>
                 <span className="font-mono font-bold">{formatVnd(i.subtotal)}</span>
               </div>
             ))}

@@ -7,21 +7,26 @@ echo   Tac gia: Tran Huu Nhan (HCMUNRE) - GVHD: ThS. Nguyen Thanh Truyen
 echo ==============================================================================
 echo.
 
-set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot
-set PATH=%JAVA_HOME%\bin;C:\Users\Admin\.gemini\antigravity\scratch\maven\apache-maven-3.9.9\bin;%PATH%
+set "ROOT_DIR=%~dp0"
+set "PYTHON_EXE=python"
+if exist "%LOCALAPPDATA%\Python\pythoncore-3.14-64\python.exe" set "PYTHON_EXE=%LOCALAPPDATA%\Python\pythoncore-3.14-64\python.exe"
 
 echo [1/3] Dang khoi dong Backend Spring Boot (Port 8080)...
-start "Backend Spring Boot" cmd /k "title Backend Spring Boot (Port 8080) && cd /d C:\Users\Admin\.gemini\antigravity\scratch\linhkien-iot-ai\backend && "%JAVA_HOME%\bin\java.exe" -jar target\linhkien-iot-ai-1.0.0.jar"
+if exist "%ROOT_DIR%backend\target\linhkien-iot-ai-1.0.0.jar" (
+    start "Backend Spring Boot" cmd /k "title Backend Spring Boot (Port 8080) && cd /d "%ROOT_DIR%backend" && java -jar target\linhkien-iot-ai-1.0.0.jar"
+) else (
+    start "Backend Spring Boot" cmd /k "title Backend Spring Boot (Port 8080) && cd /d "%ROOT_DIR%backend" && mvn spring-boot:run"
+)
 
 timeout /t 5 > nul
 
 echo [2/3] Dang khoi dong Frontend React (Port 5173)...
-start "Frontend React" cmd /k "title Frontend React (Port 5173) && cd /d C:\Users\Admin\.gemini\antigravity\scratch\linhkien-iot-ai\frontend && npm run dev"
+start "Frontend React" cmd /k "title Frontend React (Port 5173) && cd /d "%ROOT_DIR%frontend" && npm run dev"
 
 timeout /t 3 > nul
 
 echo [3/3] Dang khoi dong PC Hardware Agent (Doc thong so PC that qua MQTT)...
-start "PC Hardware Agent" cmd /k "title PC Hardware Agent (MQTT HiveMQ) && cd /d C:\Users\Admin\.gemini\antigravity\scratch\linhkien-iot-ai && python pc_agent.py"
+start "PC Hardware Agent" cmd /k "title PC Hardware Agent (MQTT HiveMQ) && cd /d "%ROOT_DIR%" && "%PYTHON_EXE%" pc_agent.py"
 
 echo.
 echo ==============================================================================

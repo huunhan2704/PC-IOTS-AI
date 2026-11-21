@@ -3,9 +3,11 @@
 #include <DHT.h>
 #include <ArduinoJson.h>
 
-// 1. Cấu hình chân cảm biến DHT22 trên Wokwi (chân 15)
+// 1. Cấu hình chân cảm biến DHT22 (GPIO 15) & Cảm biến bụi quang học / Biến trở giả lập (GPIO 34 ADC)
 #define DHTPIN 15
 #define DHTTYPE DHT22
+#define DUST_PIN 34
+
 DHT dht(DHTPIN, DHTTYPE);
 
 // 2. Cấu hình WiFi ảo của Wokwi (Bắt buộc giữ nguyên tên này trên Wokwi)
@@ -57,6 +59,7 @@ void reconnect() {
 void setup() {
   Serial.begin(115200);
   dht.begin();
+  pinMode(DUST_PIN, INPUT);
   setup_wifi();
   client.setServer(mqtt_server, mqtt_port);
 }
@@ -80,11 +83,16 @@ void loop() {
       return;
     }
 
+    // Doc cam bien bui (ADC 0..4095 -> quy doi 0..300 ug/m3)
+    int rawDust = analogRead(DUST_PIN);
+    float dustDensity = round((rawDust / 4095.0) * 300.0 * 10) / 10.0;
+
     // Dong goi goi tin JSON telemetry chuan do an
     StaticJsonDocument<256> doc;
     doc["deviceId"] = DEVICE_ID;
     doc["ambientTemp"] = round(temperature * 10) / 10.0;
     doc["ambientHumidity"] = round(humidity * 10) / 10.0;
+    doc["dustDensity"] = dustDensity;
     doc["timestamp"] = millis();
 
     char buffer[256];

@@ -10,6 +10,13 @@
       "top": -30,
       "left": 180,
       "attrs": { "temperature": "28.5", "humidity": "62" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "dust_pot",
+      "top": 120,
+      "left": 180,
+      "attrs": { "value": "15" }
     }
   ],
   "connections": [
@@ -17,7 +24,10 @@
     [ "esp:RX", "$serialMonitor:TX", "", [] ],
     [ "esp:3V3", "dht1:VCC", "red", [ "v0" ] ],
     [ "esp:GND.1", "dht1:GND", "black", [ "v0" ] ],
-    [ "esp:15", "dht1:SDA", "green", [ "v0" ] ]
+    [ "esp:15", "dht1:SDA", "green", [ "v0" ] ],
+    [ "esp:3V3", "dust_pot:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.2", "dust_pot:GND", "black", [ "v0" ] ],
+    [ "esp:34", "dust_pot:SIG", "orange", [ "v0" ] ]
   ],
   "dependencies": {}
 }

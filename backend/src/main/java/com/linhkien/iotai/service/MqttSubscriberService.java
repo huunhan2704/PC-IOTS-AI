@@ -118,6 +118,15 @@ public class MqttSubscriberService implements MqttCallback {
                     ambHum = ((Number) env.get("humidity")).floatValue();
                 }
 
+                float dustDensity = 25.0f;
+                if (env.containsKey("dustDensity")) {
+                    dustDensity = ((Number) env.get("dustDensity")).floatValue();
+                } else if (env.containsKey("dust")) {
+                    dustDensity = ((Number) env.get("dust")).floatValue();
+                } else if (env.containsKey("pm25")) {
+                    dustDensity = ((Number) env.get("pm25")).floatValue();
+                }
+
                 // Support both camelCase (from python script) and snake_case (standard)
                 float cpuLoad = getFloat(telemMap, "cpuLoad", "cpu_load", 0.0f);
                 float cpuTemp = getFloat(telemMap, "cpuTemp", "cpu_temp", 42.0f);
@@ -144,6 +153,7 @@ public class MqttSubscriberService implements MqttCallback {
                         .powerDrawW(powerW)
                         .ambientTemp(ambTemp)
                         .ambientHumidity(ambHum)
+                        .dustDensity(dustDensity)
                         .build();
 
                 realPcLastStreamMap.put(deviceId, System.currentTimeMillis());

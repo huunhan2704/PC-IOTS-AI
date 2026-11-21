@@ -61,6 +61,10 @@ public class TelemetryLog {
     @Column(name = "ambient_humidity", nullable = false)
     private Float ambientHumidity;
 
+    @Column(name = "dust_density")
+    @Builder.Default
+    private Float dustDensity = 25.0f;
+
     @Column(name = "status_flag", nullable = false, length = 50)
     @Builder.Default
     private String statusFlag = "NORMAL";

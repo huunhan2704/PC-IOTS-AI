@@ -41,7 +41,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { PriceTag } from '@/components/ui/PriceTag';
 import { useAuthStore } from '@/store/authStore';
-import { ShieldCheck, UserPlus, Lock, Unlock, FileSpreadsheet, Printer, Calendar, Cpu, Copy } from 'lucide-react';
+import { ShieldCheck, UserPlus, Lock, Unlock, FileSpreadsheet, Printer, Calendar, Cpu, Copy, Eye, User, Phone, MapPin, CreditCard, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
@@ -68,10 +68,11 @@ export const frm_AdminQuanTri: React.FC = () => {
     roomLocation: 'Phòng kỹ thuật',
   });
 
-  // Revenue Report State
+  // Revenue Report & Order Detail State
   const [revStartDate, setRevStartDate] = useState(() => new Date(Date.now() - 29 * 86400000).toISOString().split('T')[0]);
   const [revEndDate, setRevEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [invoiceOrder, setInvoiceOrder] = useState<any | null>(null);
+  const [detailOrder, setDetailOrder] = useState<OrderDto | null>(null);
 
   // Users & Roles Modal State
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -739,7 +740,16 @@ export const frm_AdminQuanTri: React.FC = () => {
               <tbody className="divide-y divide-slate-800/60">
                 {ordersPage?.content.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-900/40">
-                    <td className="p-3.5 font-mono font-bold text-sky-400">{order.orderCode}</td>
+                    <td className="p-3.5 font-mono font-bold text-sky-400">
+                      <button
+                        type="button"
+                        onClick={() => setDetailOrder(order)}
+                        className="hover:underline text-left"
+                        title="Xem chi tiết đơn hàng"
+                      >
+                        {order.orderCode}
+                      </button>
+                    </td>
                     <td className="p-3.5">
                       <p className="font-bold text-slate-200">{order.customerName}</p>
                       <p className="text-[11px] text-slate-500">{order.phone}</p>
@@ -752,7 +762,16 @@ export const frm_AdminQuanTri: React.FC = () => {
                       {formatVnd(order.finalAmount)}
                     </td>
                     <td className="p-3.5">{getOrderStatusBadge(order.orderStatus)}</td>
-                    <td className="p-3.5 text-right space-x-1.5">
+                    <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDetailOrder(order)}
+                        className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        Chi tiết
+                      </Button>
                       {order.orderStatus === 'CHO_XAC_NHAN' && (
                         <>
                           <Button
@@ -1725,6 +1744,234 @@ export const frm_AdminQuanTri: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* Order Detail Modal (Customer, Items, Warranty) */}
+      <Modal
+        isOpen={!!detailOrder}
+        onClose={() => setDetailOrder(null)}
+        title={`Chi Tiết Đơn Hàng - ${detailOrder?.orderCode || ''}`}
+      >
+        {detailOrder && (
+          <div className="space-y-4 text-xs">
+            {/* Header Summary */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+              <div className="space-y-0.5">
+                <p className="text-[11px] text-slate-400">Mã đơn hàng</p>
+                <p className="font-mono font-bold text-sm text-sky-400">#{detailOrder.orderCode}</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-[11px] text-slate-400">Ngày đặt hàng</p>
+                <p className="font-medium text-slate-200">
+                  {detailOrder.createdAt ? detailOrder.createdAt.replace('T', ' ').slice(0, 16) : '—'}
+                </p>
+              </div>
+              <div className="space-y-0.5 text-right">
+                <p className="text-[11px] text-slate-400">Trạng thái đơn</p>
+                <div>{getOrderStatusBadge(detailOrder.orderStatus)}</div>
+              </div>
+            </div>
+
+            {/* Customer & Payment Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+                <h4 className="font-bold text-slate-200 flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                  <User className="w-3.5 h-3.5 text-sky-400" />
+                  Thông Tin Khách Hàng
+                </h4>
+                <div className="space-y-1.5 text-slate-300">
+                  <p className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span className="font-semibold text-white">{detailOrder.customerName}</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span className="font-mono">{detailOrder.phone}</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
+                    <span>
+                      {detailOrder.shippingAddress}
+                      {detailOrder.city ? `, ${detailOrder.city}` : ''}
+                    </span>
+                  </p>
+                  {detailOrder.note && (
+                    <p className="flex items-start gap-2 text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 mt-1">
+                      <FileText className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <span>Ghi chú: {detailOrder.note}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+                <h4 className="font-bold text-slate-200 flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                  Thanh Toán & Giao Dịch
+                </h4>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Phương thức:</span>
+                    <span className="font-semibold text-slate-100">{detailOrder.paymentMethod}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Trạng thái TT:</span>
+                    <span
+                      className={`font-semibold ${
+                        detailOrder.paymentStatus === 'PAID'
+                          ? 'text-emerald-400'
+                          : detailOrder.paymentStatus === 'REFUNDED'
+                          ? 'text-sky-400'
+                          : 'text-amber-400'
+                      }`}
+                    >
+                      {detailOrder.paymentStatus}
+                    </span>
+                  </div>
+                  {detailOrder.couponCode && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Mã giảm giá:</span>
+                      <span className="font-mono font-bold text-emerald-400">{detailOrder.couponCode}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Cập nhật cuối:</span>
+                    <span>
+                      {detailOrder.updatedAt ? detailOrder.updatedAt.replace('T', ' ').slice(0, 16) : '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Products & Warranty Table */}
+            <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+              <div className="px-3.5 py-2.5 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+                <span className="font-bold text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  Chi Tiết Linh Kiện & Bảo Hành ({detailOrder.items?.length || 0} sản phẩm)
+                </span>
+              </div>
+              <div className="divide-y divide-slate-800/70 max-h-64 overflow-y-auto">
+                {(detailOrder.items || []).map((it, idx) => {
+                  const warrantyMonths = it.warrantyMonths ?? 12;
+                  let expiryText = `${warrantyMonths} tháng`;
+                  let warrantyStatusEl = (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                      Kích hoạt khi giao ({warrantyMonths}T)
+                    </span>
+                  );
+
+                  if (detailOrder.orderStatus === 'DA_HUY') {
+                    warrantyStatusEl = (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                        Đơn đã hủy
+                      </span>
+                    );
+                  } else if (detailOrder.createdAt) {
+                    const start = new Date(detailOrder.createdAt);
+                    const end = new Date(start);
+                    end.setMonth(end.getMonth() + warrantyMonths);
+                    const formattedEnd = end.toLocaleDateString('vi-VN');
+                    expiryText = `${warrantyMonths} tháng (đến ${formattedEnd})`;
+
+                    if (detailOrder.orderStatus === 'DA_GIAO') {
+                      const isValid = end >= new Date();
+                      warrantyStatusEl = isValid ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                          Còn bảo hành • đến {formattedEnd}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-700/60 text-slate-400 border border-slate-600">
+                          Hết hạn bảo hành ({formattedEnd})
+                        </span>
+                      );
+                    }
+                  }
+
+                  return (
+                    <div key={it.id || idx} className="p-3 flex items-center justify-between gap-3 hover:bg-slate-900/60">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {it.imageUrl ? (
+                          <img
+                            src={it.imageUrl}
+                            alt={it.productName}
+                            className="w-11 h-11 rounded-lg object-cover border border-slate-700 bg-slate-950 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-11 h-11 rounded-lg border border-slate-800 bg-slate-950 flex items-center justify-center shrink-0">
+                            <Package className="w-5 h-5 text-slate-600" />
+                          </div>
+                        )}
+                        <div className="min-w-0 space-y-1">
+                          <p className="font-semibold text-slate-100 truncate">{it.productName}</p>
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                            <span>
+                              SL: <strong className="text-slate-200 font-mono">{it.quantity}</strong> ×{' '}
+                              <span className="font-mono">{formatVnd(Number(it.unitPrice || 0))}</span>
+                            </span>
+                            <span>•</span>
+                            <span title={expiryText}>{warrantyStatusEl}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-mono font-bold text-rose-400">
+                          {formatVnd(Number(it.subtotal || 0))}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Totals */}
+            <div className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1.5 text-right">
+              <p className="text-slate-400">
+                Tạm tính:{' '}
+                <span className="font-mono font-semibold text-slate-200">
+                  {formatVnd(Number(detailOrder.totalAmount || 0))}
+                </span>
+              </p>
+              {Number(detailOrder.discountAmount || 0) > 0 && (
+                <p className="text-emerald-400">
+                  Giảm giá {detailOrder.couponCode ? `(${detailOrder.couponCode})` : ''}:{' '}
+                  <span className="font-mono">-{formatVnd(Number(detailOrder.discountAmount))}</span>
+                </p>
+              )}
+              <p className="text-slate-400">
+                Phí vận chuyển:{' '}
+                <span className="font-mono text-slate-200">
+                  {formatVnd(Number(detailOrder.shippingFee || 0))}
+                </span>
+              </p>
+              <p className="text-sm font-black text-rose-400 pt-1 border-t border-slate-800">
+                TỔNG THANH TOÁN:{' '}
+                <span className="font-mono">{formatVnd(Number(detailOrder.finalAmount || 0))}</span>
+              </p>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" onClick={() => setDetailOrder(null)}>
+                Đóng
+              </Button>
+              <Button
+                onClick={() => {
+                  const target = detailOrder;
+                  setDetailOrder(null);
+                  setInvoiceOrder(target);
+                }}
+                className="flex items-center gap-1.5"
+              >
+                <Printer className="w-4 h-4" />
+                Xem & In Hóa Đơn
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* ESP32 Firmware & Wokwi Config Modal (For Technician / Admin) */}
       <Modal
         isOpen={!!configDevice}
@@ -1739,6 +1986,7 @@ export const frm_AdminQuanTri: React.FC = () => {
 
 #define DHTPIN 15
 #define DHTTYPE DHT22
+#define DUST_PIN 34
 DHT dht(DHTPIN, DHTTYPE);
 
 // WiFi (Dùng "Wokwi-GUEST" nếu test Wokwi, hoặc tên WiFi nhà khách nếu nạp mạch thật)
@@ -1774,6 +2022,7 @@ void reconnect() {
 void setup() {
   Serial.begin(115200);
   dht.begin();
+  pinMode(DUST_PIN, INPUT);
   setup_wifi();
   client.setServer(mqtt_server, mqtt_port);
 }
@@ -1786,10 +2035,12 @@ void loop() {
     float t = dht.readTemperature();
     float h = dht.readHumidity();
     if (isnan(t) || isnan(h)) return;
+    float dust = round((analogRead(DUST_PIN) / 4095.0) * 300.0 * 10) / 10.0;
     StaticJsonDocument<256> doc;
     doc["deviceId"] = DEVICE_ID;
     doc["ambientTemp"] = round(t * 10) / 10.0;
     doc["ambientHumidity"] = round(h * 10) / 10.0;
+    doc["dustDensity"] = dust;
     char buf[256];
     serializeJson(doc, buf);
     client.publish(mqtt_topic, buf);

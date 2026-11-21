@@ -122,6 +122,7 @@ public class InternalSimulatorService {
         }
 
         // Check if real ESP32 sent environment data via MQTT
+        float dustDensity = 22.0f + random.nextFloat() * 12.0f;
         Map<String, Object> realEnv = mqttSubscriberService.getLatestAmbientData(deviceCode);
         if (realEnv != null) {
             if (realEnv.containsKey("ambientTemp")) {
@@ -133,6 +134,13 @@ public class InternalSimulatorService {
                 ambHum = ((Number) realEnv.get("ambientHumidity")).floatValue();
             } else if (realEnv.containsKey("humidity")) {
                 ambHum = ((Number) realEnv.get("humidity")).floatValue();
+            }
+            if (realEnv.containsKey("dustDensity")) {
+                dustDensity = ((Number) realEnv.get("dustDensity")).floatValue();
+            } else if (realEnv.containsKey("dust")) {
+                dustDensity = ((Number) realEnv.get("dust")).floatValue();
+            } else if (realEnv.containsKey("pm25")) {
+                dustDensity = ((Number) realEnv.get("pm25")).floatValue();
             }
         }
 
@@ -150,6 +158,7 @@ public class InternalSimulatorService {
                 .powerDrawW(powerW)
                 .ambientTemp(round1(ambTemp))
                 .ambientHumidity(round1(ambHum))
+                .dustDensity(round1(dustDensity))
                 .recordedAt(LocalDateTime.now().toString())
                 .build();
     }

@@ -10,6 +10,7 @@ import {
   Zap,
   Clock,
   Laptop,
+  Wind,
 } from 'lucide-react';
 import {
   LineChart,
@@ -48,6 +49,7 @@ const emptyTelemetry = (code: string): TelemetryDto => ({
   powerDrawW: 0,
   ambientTemp: 0,
   ambientHumidity: 0,
+  dustDensity: 0,
   statusFlag: 'NORMAL',
   recordedAt: '',
 });
@@ -123,7 +125,11 @@ export const frm_DashboardIoT: React.FC = () => {
       setLatestTelemetry(newTel);
 
       // Automatically clear active alert when system and ambient return to safe normal levels
-      if (newTel.statusFlag === 'NORMAL' && (newTel.ambientTemp || 0) < 40.0) {
+      if (
+        newTel.statusFlag === 'NORMAL' &&
+        (newTel.ambientTemp || 0) < 40.0 &&
+        (newTel.dustDensity || 0) < 100.0
+      ) {
         setActiveAlert(null);
       }
       setTelemetryHistory((prev) => {
@@ -276,11 +282,12 @@ export const frm_DashboardIoT: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Active Alarm Banner (BR09, BR10) */}
+      {/* 2. Active Alarm Banner (BR09, BR10, Dust) */}
       <AlertBanner
         statusFlag={latestTelemetry.statusFlag}
         recentAlert={activeAlert}
         ambientTemp={latestTelemetry.ambientTemp}
+        dustDensity={latestTelemetry.dustDensity}
       />
 
       {/* 3. Hardware Gauges Row */}
@@ -335,7 +342,7 @@ export const frm_DashboardIoT: React.FC = () => {
       </div>
 
       {/* 4. ESP32 Environment Sensors Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
           <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
             <Thermometer className="w-6 h-6" />
@@ -369,6 +376,48 @@ export const frm_DashboardIoT: React.FC = () => {
                 {latestTelemetry.ambientHumidity}
               </span>
               <span className="text-xs text-slate-400 font-bold">%</span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={`rounded-2xl p-4 flex items-center gap-4 border ${
+            (latestTelemetry.dustDensity ?? 0) >= 100
+              ? 'bg-orange-500/10 border-orange-500/40'
+              : 'bg-slate-900/60 border-slate-800'
+          }`}
+        >
+          <div
+            className={`p-3 rounded-xl border ${
+              (latestTelemetry.dustDensity ?? 0) >= 100
+                ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
+                : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+            }`}
+          >
+            <Wind className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase">
+              Mật Độ Bụi Trong Case (ESP32)
+            </span>
+            <div className="flex flex-wrap items-baseline gap-1 mt-0.5">
+              <span className="text-2xl font-black text-slate-100 font-mono">
+                {latestTelemetry.dustDensity ?? 0}
+              </span>
+              <span className="text-xs text-slate-400 font-bold">µg/m³</span>
+              {(latestTelemetry.dustDensity ?? 0) >= 100 ? (
+                <span className="ml-1 text-[10px] font-bold text-orange-400">
+                  ⚠️ Bụi cao - Cần vệ sinh
+                </span>
+              ) : (latestTelemetry.dustDensity ?? 0) >= 50 ? (
+                <span className="ml-1 text-[10px] font-semibold text-amber-400">
+                  Bụi trung bình
+                </span>
+              ) : (
+                <span className="ml-1 text-[10px] font-semibold text-emerald-400">
+                  Case sạch
+                </span>
+              )}
             </div>
           </div>
         </div>

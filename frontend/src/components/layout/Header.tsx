@@ -13,6 +13,7 @@ import {
   Sparkles,
   Package,
   Wrench,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -165,6 +166,15 @@ export const Header: React.FC = () => {
           >
             <Sparkles className="w-3.5 h-3.5" />
             Tư Vấn AI
+          </Link>
+
+          {/* Warranty Lookup Quick Link */}
+          <Link
+            to="/bao-hanh"
+            className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Bảo Hành
           </Link>
 
           {/* Theme Toggle */}

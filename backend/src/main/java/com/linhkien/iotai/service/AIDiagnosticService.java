@@ -37,12 +37,14 @@ public class AIDiagnosticService {
                 .orElseThrow(() -> new ResourceNotFoundException("Thiết bị không tồn tại: " + deviceCode));
 
         LocalDateTime since = LocalDateTime.now().minusDays(30);
-        List<TelemetryLog> logs = telemetryLogRepository.findByDeviceIdAndRecordedAtAfter(device.getId(), since);
+        List<TelemetryLog> allLogs = telemetryLogRepository.findByDeviceIdAndRecordedAtAfter(device.getId(), since);
 
-        if (logs.isEmpty()) {
+        if (allLogs.isEmpty()) {
             return buildEmptyReport(device);
         }
 
+        // Phân tích tối đa 100 mẫu đo gần nhất để phản ánh sát trạng thái phần cứng hiện tại
+        List<TelemetryLog> logs = allLogs.size() > 100 ? allLogs.subList(0, 100) : allLogs;
         int totalSamples = logs.size();
 
         // 1. Calculate Statistics & Metrics

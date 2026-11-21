@@ -414,6 +414,7 @@ public class OrderService {
                     .unitPrice(item.getUnitPrice())
                     .quantity(item.getQuantity())
                     .subtotal(item.getSubtotal())
+                    .warrantyMonths(item.getProduct() != null ? item.getProduct().getWarrantyMonths() : 12)
                     .build()).collect(Collectors.toList());
         }
 

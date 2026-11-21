@@ -64,6 +64,7 @@ public class IotDto {
         private Integer powerDrawW;
         private Float ambientTemp;
         private Float ambientHumidity;
+        private Float dustDensity;
         private String statusFlag;
         private String recordedAt;
     }

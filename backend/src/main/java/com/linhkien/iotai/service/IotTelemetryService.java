@@ -83,6 +83,18 @@ public class IotTelemetryService {
                     ambTemp);
         }
 
+        // Dust Alarm: Case Dust Sensor >= 100 ug/m3
+        float dustDensity = telemetry.getDustDensity() != null ? telemetry.getDustDensity() : 25.0f;
+        if (dustDensity >= 100.0f) {
+            if (!"ALERT_OVERHEAT".equals(flag) && !"AMBIENT_HEAT".equals(flag)) {
+                flag = "DUST_HIGH";
+            }
+            device.setStatus(DeviceStatus.WARNING);
+            saveAndBroadcastAlert(device, "DUST_HIGH", Severity.HIGH,
+                    String.format("CẢNH BÁO BỤI TRONG CASE: Cảm biến ESP32 ghi nhận mật độ bụi %.1f µg/m³ (>= 100 µg/m³). Đề nghị vệ sinh máy và lưới lọc bụi!", dustDensity),
+                    dustDensity);
+        }
+
         // Save Telemetry Log to DB
         TelemetryLog logEntity = TelemetryLog.builder()
                 .device(device)
@@ -98,6 +110,7 @@ public class IotTelemetryService {
                 .powerDrawW(telemetry.getPowerDrawW() != null ? telemetry.getPowerDrawW() : 150)
                 .ambientTemp(ambTemp)
                 .ambientHumidity(telemetry.getAmbientHumidity() != null ? telemetry.getAmbientHumidity() : 50.0f)
+                .dustDensity(dustDensity)
                 .statusFlag(flag)
                 .recordedAt(now)
                 .build();
@@ -160,6 +173,7 @@ public class IotTelemetryService {
                 .powerDrawW(l.getPowerDrawW())
                 .ambientTemp(l.getAmbientTemp())
                 .ambientHumidity(l.getAmbientHumidity())
+                .dustDensity(l.getDustDensity() != null ? l.getDustDensity() : 25.0f)
                 .statusFlag(l.getStatusFlag())
                 .recordedAt(l.getRecordedAt().toString())
                 .build()).collect(Collectors.toList());
@@ -185,6 +199,7 @@ public class IotTelemetryService {
                         .powerDrawW(l.getPowerDrawW())
                         .ambientTemp(l.getAmbientTemp())
                         .ambientHumidity(l.getAmbientHumidity())
+                        .dustDensity(l.getDustDensity() != null ? l.getDustDensity() : 25.0f)
                         .statusFlag(l.getStatusFlag())
                         .recordedAt(l.getRecordedAt().toString())
                         .build())

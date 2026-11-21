@@ -1,21 +1,21 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   application:
     name: linhkien-iot-ai
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/linhkien_iotai}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    url: ${SPRING_DATASOURCE_URL:jdbc:sqlserver://localhost:1433;databaseName=linhkien_iotai;encrypt=true;trustServerCertificate=true}
+    username: ${SPRING_DATASOURCE_USERNAME:linhkien}
     password: ${SPRING_DATASOURCE_PASSWORD:Nhandz12@}
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:com.microsoft.sqlserver.jdbc.SQLServerDriver}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: ${SPRING_JPA_DIALECT:org.hibernate.dialect.SQLServerDialect}
         format_sql: true
     defer-datasource-initialization: false
   sql:

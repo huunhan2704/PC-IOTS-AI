@@ -136,6 +136,7 @@ public class OrderDto {
         private BigDecimal unitPrice;
         private Integer quantity;
         private BigDecimal subtotal;
+        private Integer warrantyMonths;
     }
 
     @Getter

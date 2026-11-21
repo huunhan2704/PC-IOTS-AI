@@ -15,6 +15,7 @@ import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { MyOrdersPage } from '@/pages/MyOrdersPage';
 import { OrderTrackingPage } from '@/pages/OrderTrackingPage';
+import { WarrantyLookupPage } from '@/pages/WarrantyLookupPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { useAuthStore } from '@/store/authStore';
 
@@ -68,6 +69,7 @@ export const App: React.FC = () => {
             }
           />
           <Route path="/tra-cuu" element={<OrderTrackingPage />} />
+          <Route path="/bao-hanh" element={<WarrantyLookupPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>

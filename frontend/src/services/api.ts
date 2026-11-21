@@ -2,8 +2,11 @@ import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 
+const rawBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+const apiBaseUrl = rawBaseUrl ? `${rawBaseUrl.replace(/\/$/, '')}/api` : '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: apiBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
