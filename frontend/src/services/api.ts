@@ -3,7 +3,10 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 
 const rawBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
-const apiBaseUrl = rawBaseUrl ? `${rawBaseUrl.replace(/\/$/, '')}/api` : '/api';
+const normalizedBase = rawBaseUrl
+  ? (/^https?:\/\//i.test(rawBaseUrl.trim()) ? rawBaseUrl.trim() : `https://${rawBaseUrl.trim()}`).replace(/\/$/, '')
+  : '';
+const apiBaseUrl = normalizedBase ? `${normalizedBase}/api` : '/api';
 
 const api = axios.create({
   baseURL: apiBaseUrl,

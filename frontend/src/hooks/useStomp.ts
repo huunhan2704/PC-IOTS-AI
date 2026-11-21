@@ -6,7 +6,10 @@ let globalClient: Client | null = null;
 let clientSubscribers = 0;
 
 const rawBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
-const wsEndpoint = rawBaseUrl ? `${rawBaseUrl.replace(/\/$/, '')}/ws` : '/ws';
+const normalizedBase = rawBaseUrl
+  ? (/^https?:\/\//i.test(rawBaseUrl.trim()) ? rawBaseUrl.trim() : `https://${rawBaseUrl.trim()}`).replace(/\/$/, '')
+  : '';
+const wsEndpoint = normalizedBase ? `${normalizedBase}/ws` : '/ws';
 
 function getStompClient(): Client {
   if (!globalClient) {
