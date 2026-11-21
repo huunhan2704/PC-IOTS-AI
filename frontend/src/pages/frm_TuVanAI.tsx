@@ -21,13 +21,23 @@ import { toast } from 'sonner';
 
 export const frm_TuVanAI: React.FC = () => {
   const queryClient = useQueryClient();
-  const [selectedDeviceCode, setSelectedDeviceCode] = useState<string>('PC-NHAN-001');
+  const [selectedDeviceCode, setSelectedDeviceCode] = useState<string>('');
   const addItem = useCartStore((s) => s.addItem);
 
   const { data: devices = [] } = useQuery({
     queryKey: ['my-devices'],
     queryFn: iotService.getMyDevices,
   });
+
+  React.useEffect(() => {
+    if (devices.length > 0) {
+      if (!selectedDeviceCode || !devices.some((d) => d.deviceCode === selectedDeviceCode)) {
+        setSelectedDeviceCode(devices[0].deviceCode);
+      }
+    } else {
+      setSelectedDeviceCode('');
+    }
+  }, [devices, selectedDeviceCode]);
 
   const { data: report, isLoading, isRefetching } = useQuery({
     queryKey: ['ai-diagnostics', selectedDeviceCode],
@@ -98,7 +108,7 @@ export const frm_TuVanAI: React.FC = () => {
                 {d.deviceName} ({d.deviceCode})
               </option>
             ))}
-            {devices.length === 0 && <option value="PC-NHAN-001">PC Gaming Trần Hữu Nhân</option>}
+            {devices.length === 0 && <option value="">-- Chưa có thiết bị --</option>}
           </select>
 
           {/* Quick Simulation Dropdown for Defense Demo */}

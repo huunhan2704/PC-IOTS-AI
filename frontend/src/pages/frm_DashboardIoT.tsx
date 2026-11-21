@@ -196,8 +196,8 @@ export const frm_DashboardIoT: React.FC = () => {
                 </option>
               ))}
               {devices.length === 0 && (
-                <option value="PC-NHAN-001" className="bg-slate-900">
-                  PC Gaming Trần Hữu Nhân (PC-NHAN-001)
+                <option value="" className="bg-slate-900">
+                  -- Chưa có thiết bị --
                 </option>
               )}
             </select>
