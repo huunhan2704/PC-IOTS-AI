@@ -37,6 +37,7 @@ public class MqttSubscriberService implements MqttCallback {
 
     // Cache latest environment data from ESP32: deviceId -> {temperature, humidity, esp32_ip}
     private final Map<String, Map<String, Object>> latestEnvData = new ConcurrentHashMap<>();
+    private final Map<String, Long> latestEnvTimeMap = new ConcurrentHashMap<>();
     private final Map<String, Long> realPcLastStreamMap = new ConcurrentHashMap<>();
 
     @PostConstruct
@@ -94,6 +95,7 @@ public class MqttSubscriberService implements MqttCallback {
 
                 Map<String, Object> envMap = objectMapper.readValue(payload, Map.class);
                 latestEnvData.put(deviceId, envMap);
+                latestEnvTimeMap.put(deviceId, System.currentTimeMillis());
                 log.info("Received environment telemetry from ESP32 for {}: {}", deviceId, payload);
 
             } else if (topic.startsWith("pc/telemetry/")) {
@@ -102,23 +104,26 @@ public class MqttSubscriberService implements MqttCallback {
 
                 Map<String, Object> telemMap = objectMapper.readValue(payload, Map.class);
 
-                // Merge environment data if present
-                Map<String, Object> env = latestEnvData.getOrDefault(deviceId, Collections.emptyMap());
-                float ambTemp = 28.0f;
+                // Merge environment data only if ESP32 is actively connected (within last 15 seconds)
+                Long lastEnvTime = latestEnvTimeMap.get(deviceId);
+                boolean espConnected = lastEnvTime != null && (System.currentTimeMillis() - lastEnvTime <= 15000);
+                Map<String, Object> env = espConnected ? latestEnvData.getOrDefault(deviceId, Collections.emptyMap()) : Collections.emptyMap();
+
+                float ambTemp = 0.0f;
                 if (env.containsKey("ambientTemp")) {
                     ambTemp = ((Number) env.get("ambientTemp")).floatValue();
                 } else if (env.containsKey("temperature")) {
                     ambTemp = ((Number) env.get("temperature")).floatValue();
                 }
 
-                float ambHum = 60.0f;
+                float ambHum = 0.0f;
                 if (env.containsKey("ambientHumidity")) {
                     ambHum = ((Number) env.get("ambientHumidity")).floatValue();
                 } else if (env.containsKey("humidity")) {
                     ambHum = ((Number) env.get("humidity")).floatValue();
                 }
 
-                float dustDensity = 25.0f;
+                float dustDensity = 0.0f;
                 if (env.containsKey("dustDensity")) {
                     dustDensity = ((Number) env.get("dustDensity")).floatValue();
                 } else if (env.containsKey("dust")) {

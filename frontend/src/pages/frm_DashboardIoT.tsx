@@ -413,9 +413,13 @@ export const frm_DashboardIoT: React.FC = () => {
                 <span className="ml-1 text-[10px] font-semibold text-amber-400">
                   Bụi trung bình
                 </span>
-              ) : (
+              ) : (latestTelemetry.dustDensity ?? 0) > 0 || (latestTelemetry.ambientTemp ?? 0) > 0 ? (
                 <span className="ml-1 text-[10px] font-semibold text-emerald-400">
                   Case sạch
+                </span>
+              ) : (
+                <span className="ml-1 text-[10px] font-semibold text-slate-500">
+                  Chưa kết nối ESP32
                 </span>
               )}
             </div>
