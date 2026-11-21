@@ -250,7 +250,7 @@ export const frm_PCBuilder: React.FC = () => {
             <input
               type="number"
               min="1000000"
-              step="500000"
+              step="any"
               value={aiBudget}
               onChange={(e) => setAiBudget(e.target.value)}
               placeholder="VD: 15000000"
