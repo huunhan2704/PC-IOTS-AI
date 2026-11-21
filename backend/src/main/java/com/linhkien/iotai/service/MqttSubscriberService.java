@@ -88,7 +88,7 @@ public class MqttSubscriberService implements MqttCallback {
 
         try {
             if (topic.startsWith("iot/environment/")) {
-                String rawDeviceId = topic.substring("iot/environment/".length());
+                String rawDeviceId = topic.substring("iot/environment/".length()).trim().toUpperCase();
                 // Map ESP32_ROOM_01 to PC-NHAN-001 or keep raw
                 String deviceId = "ESP32_ROOM_01".equalsIgnoreCase(rawDeviceId) ? "PC-NHAN-001" : rawDeviceId;
 
@@ -97,7 +97,7 @@ public class MqttSubscriberService implements MqttCallback {
                 log.info("Received environment telemetry from ESP32 for {}: {}", deviceId, payload);
 
             } else if (topic.startsWith("pc/telemetry/")) {
-                String rawDeviceId = topic.substring("pc/telemetry/".length());
+                String rawDeviceId = topic.substring("pc/telemetry/".length()).trim().toUpperCase();
                 String deviceId = ("PC_GAMING_NHAN".equalsIgnoreCase(rawDeviceId) || "PC_GAMING".equalsIgnoreCase(rawDeviceId)) ? "PC-NHAN-001" : rawDeviceId;
 
                 Map<String, Object> telemMap = objectMapper.readValue(payload, Map.class);

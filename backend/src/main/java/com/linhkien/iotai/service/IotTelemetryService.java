@@ -119,11 +119,13 @@ public class IotTelemetryService {
         deviceRepository.save(device);
 
         // Update telemetry response with statusFlag and formatted time
+        String canonicalCode = device.getDeviceCode();
+        telemetry.setDeviceCode(canonicalCode);
         telemetry.setStatusFlag(flag);
         telemetry.setRecordedAt(now.toString());
 
         // Broadcast to WebSocket: /topic/telemetry/{deviceCode}
-        messagingTemplate.convertAndSend("/topic/telemetry/" + deviceCode, telemetry);
+        messagingTemplate.convertAndSend("/topic/telemetry/" + canonicalCode, telemetry);
     }
 
     private void saveAndBroadcastAlert(IotDevice device, String type, Severity severity, String message, float val) {
