@@ -85,35 +85,11 @@ export const frm_DashboardIoT: React.FC = () => {
     }
   }, [devices, selectedDeviceCode]);
 
-  // Load initial telemetry history (always start gauges at 0 until live data arrives)
+  // Reset gauges and charts to empty/0 when switching devices (only populate from live WebSocket stream)
   useEffect(() => {
     setLatestTelemetry(emptyTelemetry(selectedDeviceCode || ''));
+    setTelemetryHistory([]);
     setActiveAlert(null);
-    if (selectedDeviceCode) {
-      iotService
-        .getTelemetryHistory(selectedDeviceCode, 30)
-        .then((data) => {
-          if (data && data.length > 0) {
-            const formatted = data.map((d) => ({
-              time: d.recordedAt ? d.recordedAt.substring(11, 19) : '',
-              cpuLoad: d.cpuLoad,
-              ramUsage: d.ramUsage,
-              gpuLoad: d.gpuLoad,
-              cpuTemp: d.cpuTemp,
-              gpuTemp: d.gpuTemp,
-              ambientTemp: d.ambientTemp,
-            }));
-            setTelemetryHistory(formatted);
-          } else {
-            setTelemetryHistory([]);
-          }
-        })
-        .catch(() => {
-          setTelemetryHistory([]);
-        });
-    } else {
-      setTelemetryHistory([]);
-    }
   }, [selectedDeviceCode]);
 
   // STOMP WebSocket Live Telemetry Subscription
