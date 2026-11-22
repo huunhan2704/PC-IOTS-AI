@@ -4,46 +4,147 @@
 
 @layer base {
   :root {
-    --color-bg: #030712;
-    --color-surface: #0f172a;
-    --color-card: #1e293b;
-    --color-border: #334155;
+    --color-bg: #131d33;
+    --color-surface: #1c2942;
+    --color-card: #243452;
+    --color-border: #36496b;
   }
 
   body {
     background-color: var(--color-bg);
-    color: #f1f5f9;
+    background-image:
+      radial-gradient(at 15% 10%, rgba(56, 189, 248, 0.14) 0px, transparent 50%),
+      radial-gradient(at 85% 15%, rgba(99, 102, 241, 0.14) 0px, transparent 50%),
+      radial-gradient(at 50% 90%, rgba(16, 185, 129, 0.08) 0px, transparent 55%);
+    background-attachment: fixed;
+    color: #f8fafc;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
   }
   ::-webkit-scrollbar-track {
-    background: #0f172a;
+    background: #162138;
   }
   ::-webkit-scrollbar-thumb {
-    background: #334155;
+    background: #3b4f73;
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: #526a96;
   }
 }
 
+/* Nâng tông nền toàn bộ trang và các khung thẻ sáng hơn, rõ nét và dịu mắt hơn */
+.bg-slate-950 {
+  background-color: #131d33 !important;
+}
+.bg-slate-950\/80,
+.bg-slate-950\/90 {
+  background-color: rgba(20, 31, 54, 0.88) !important;
+}
+.bg-slate-950\/60,
+.bg-slate-950\/70 {
+  background-color: rgba(20, 31, 54, 0.72) !important;
+}
+
+.bg-slate-900 {
+  background-color: #1d2b47 !important;
+}
+.bg-slate-900\/90,
+.bg-slate-900\/80 {
+  background-color: rgba(30, 44, 72, 0.9) !important;
+}
+.bg-slate-900\/70,
+.bg-slate-900\/60 {
+  background-color: rgba(31, 45, 74, 0.78) !important;
+}
+.bg-slate-900\/40,
+.bg-slate-900\/30 {
+  background-color: rgba(34, 50, 82, 0.55) !important;
+}
+
+.border-slate-800,
+.border-slate-800\/80,
+.border-slate-800\/60 {
+  border-color: rgba(71, 95, 138, 0.55) !important;
+}
+
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(24, 36, 61, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.18);
 }
 
 .glass-card {
-  background: rgba(30, 41, 59, 0.6);
+  background: rgba(34, 49, 79, 0.72);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+/* Chế độ Sáng hẳn (Light Mode) khi bấm nút Mặt Trời trên Header */
+html.light-theme body,
+html.light-theme .min-h-screen {
+  background-color: #f1f5f9 !important;
+  background-image:
+    radial-gradient(at 15% 10%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
+    radial-gradient(at 85% 15%, rgba(99, 102, 241, 0.12) 0px, transparent 50%) !important;
+  color: #0f172a !important;
+}
+html.light-theme .bg-slate-950,
+html.light-theme .bg-slate-950\/80,
+html.light-theme .bg-slate-950\/90,
+html.light-theme .bg-slate-950\/60,
+html.light-theme .bg-slate-950\/70 {
+  background-color: #f8fafc !important;
+}
+html.light-theme .bg-slate-900,
+html.light-theme .bg-slate-900\/90,
+html.light-theme .bg-slate-900\/80,
+html.light-theme .bg-slate-900\/70,
+html.light-theme .bg-slate-900\/60,
+html.light-theme .bg-slate-900\/40,
+html.light-theme .bg-slate-900\/30,
+html.light-theme .glass-panel {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.06);
+}
+html.light-theme .bg-slate-800 {
+  background-color: #e2e8f0 !important;
+}
+html.light-theme .border-slate-800,
+html.light-theme .border-slate-800\/80,
+html.light-theme .border-slate-800\/60,
+html.light-theme .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+html.light-theme .text-slate-100,
+html.light-theme .text-slate-200,
+html.light-theme .text-white {
+  color: #0f172a !important;
+}
+html.light-theme .text-slate-300,
+html.light-theme .text-slate-400 {
+  color: #334155 !important;
+}
+html.light-theme .text-sky-400,
+html.light-theme .text-sky-300 {
+  color: #0284c7 !important;
+}
+html.light-theme .text-emerald-400,
+html.light-theme .text-emerald-300 {
+  color: #059669 !important;
+}
+html.light-theme .text-indigo-400,
+html.light-theme .text-indigo-300 {
+  color: #4f46e5 !important;
+}
+html.light-theme .text-rose-400 {
+  color: #e11d48 !important;
 }
 
 .glow-cyan {

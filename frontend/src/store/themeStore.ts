@@ -6,22 +6,34 @@ interface ThemeState {
   toggleTheme: () => void;
 }
 
+function applyDomTheme(isDark: boolean) {
+  if (typeof document === 'undefined') return;
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light-theme');
+  } else {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light-theme');
+  }
+}
+
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
       isDark: true,
       toggleTheme: () => {
         const next = !get().isDark;
-        if (next) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
+        applyDomTheme(next);
         set({ isDark: next });
       },
     }),
     {
       name: 'linhkien-theme',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          applyDomTheme(state.isDark);
+        }
+      },
     }
   )
 );
