@@ -508,6 +508,18 @@ public class GeneralAppService {
         long totalItemsSold = 0;
 
         Map<Long, AdminDto.ProductSalesItem> productSalesMap = new LinkedHashMap<>();
+        // Khởi tạo danh sách tất cả sản phẩm trong cửa hàng (kể cả SP bán 0 chiếc) để Admin có thể tìm kiếm bất kỳ sản phẩm nào trong kỳ báo cáo
+        for (Product p : productRepository.findAll(Sort.by("id").ascending())) {
+            String catName = (p.getCategory() != null && p.getCategory().getName() != null) ? p.getCategory().getName() : "Khác";
+            productSalesMap.put(p.getId(), AdminDto.ProductSalesItem.builder()
+                    .productId(p.getId())
+                    .productName(p.getName())
+                    .categoryName(catName)
+                    .brand(p.getBrand() != null ? p.getBrand() : "")
+                    .quantitySold(0L)
+                    .revenue(BigDecimal.ZERO)
+                    .build());
+        }
         Map<String, BigDecimal> categoryRevMap = new LinkedHashMap<>();
         Map<String, BigDecimal> dayRevMap = new LinkedHashMap<>();
         Map<String, Long> dayOrderMap = new LinkedHashMap<>();
@@ -607,7 +619,8 @@ public class GeneralAppService {
                 .collect(Collectors.toList());
 
         List<AdminDto.ProductSalesItem> productSales = productSalesMap.values().stream()
-                .sorted(Comparator.comparing(AdminDto.ProductSalesItem::getRevenue).reversed())
+                .sorted(Comparator.comparing(AdminDto.ProductSalesItem::getQuantitySold).reversed()
+                        .thenComparing(AdminDto.ProductSalesItem::getRevenue, Comparator.reverseOrder()))
                 .collect(Collectors.toList());
 
         return AdminDto.RevenueReportResponse.builder()

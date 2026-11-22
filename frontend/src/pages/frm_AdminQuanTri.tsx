@@ -71,6 +71,8 @@ export const frm_AdminQuanTri: React.FC = () => {
   // Revenue Report & Order Detail State
   const [revStartDate, setRevStartDate] = useState(() => new Date(Date.now() - 29 * 86400000).toISOString().split('T')[0]);
   const [revEndDate, setRevEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [revProdSearch, setRevProdSearch] = useState('');
+  const [revCatFilter, setRevCatFilter] = useState('ALL');
   const [invoiceOrder, setInvoiceOrder] = useState<any | null>(null);
   const [detailOrder, setDetailOrder] = useState<OrderDto | null>(null);
 
@@ -1135,7 +1137,7 @@ export const frm_AdminQuanTri: React.FC = () => {
                     {revenueReport.totalItemsSold} chiếc
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    Trên {revenueReport.productSales?.length || 0} mã sản phẩm khác nhau
+                    Trên {(revenueReport.productSales || []).filter((p: any) => Number(p.quantitySold || 0) > 0).length} mã sản phẩm đã bán
                   </p>
                 </div>
 
@@ -1198,49 +1200,164 @@ export const frm_AdminQuanTri: React.FC = () => {
                 </div>
               </div>
 
-              {/* Bảng Thống Kê Linh Kiện Đã Bán */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                    Thống Kê Doanh Thu Theo Từng Linh Kiện Đã Bán
-                  </h3>
-                  <span className="text-xs text-slate-400">
-                    Tổng: <strong>{revenueReport.productSales?.length || 0}</strong> mặt hàng phát sinh doanh số
-                  </span>
-                </div>
-                <table className="w-full text-xs text-left divide-y divide-slate-800">
-                  <thead className="bg-slate-950/80 text-slate-400 uppercase font-semibold">
-                    <tr>
-                      <th className="p-3.5">Linh kiện</th>
-                      <th className="p-3.5">Danh mục</th>
-                      <th className="p-3.5">Hãng</th>
-                      <th className="p-3.5 text-center">Số lượng bán</th>
-                      <th className="p-3.5 text-right">Doanh thu mang lại</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {revenueReport.productSales && revenueReport.productSales.length > 0 ? (
-                      revenueReport.productSales.map((ps: any) => (
-                        <tr key={ps.productId} className="hover:bg-slate-900/40">
-                          <td className="p-3.5 font-bold text-slate-200">{ps.productName}</td>
-                          <td className="p-3.5 text-slate-400">{ps.categoryName}</td>
-                          <td className="p-3.5 text-slate-300">{ps.brand}</td>
-                          <td className="p-3.5 text-center font-mono font-bold text-sky-400">{ps.quantitySold}</td>
-                          <td className="p-3.5 text-right font-mono font-bold text-emerald-400">
-                            {formatVnd(Number(ps.revenue || 0))}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="p-6 text-center text-slate-500">
-                          Chưa có linh kiện nào được bán trong khoảng thời gian này.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              {/* Bảng Thống Kê Linh Kiện Đã Bán + Tìm Kiếm Sản Phẩm */}
+              {(() => {
+                const allProductSales: any[] = revenueReport.productSales || [];
+                const q = revProdSearch.trim().toLowerCase();
+                const isFiltering = q.length > 0 || revCatFilter !== 'ALL';
+
+                const filteredSales = allProductSales.filter((ps: any) => {
+                  // Khi không tìm kiếm thì mặc định hiển thị các sản phẩm có lượt bán > 0 (hoặc tất cả nếu chưa có đơn nào)
+                  const hasSold = Number(ps.quantitySold || 0) > 0;
+                  if (!isFiltering && allProductSales.some((x) => Number(x.quantitySold || 0) > 0) && !hasSold) {
+                    return false;
+                  }
+                  if (revCatFilter !== 'ALL' && (ps.categoryName || '') !== revCatFilter) {
+                    return false;
+                  }
+                  if (q) {
+                    const tokens = q.split(/\s+/);
+                    const haystack = `${ps.productId || ''} ${ps.productName || ''} ${ps.brand || ''} ${ps.categoryName || ''}`.toLowerCase();
+                    return tokens.every((t) => haystack.includes(t));
+                  }
+                  return true;
+                });
+
+                const matchedQtySold = filteredSales.reduce((sum, ps) => sum + Number(ps.quantitySold || 0), 0);
+                const matchedRevenue = filteredSales.reduce((sum, ps) => sum + Number(ps.revenue || 0), 0);
+                const distinctCategories = Array.from(
+                  new Set(allProductSales.map((ps: any) => ps.categoryName).filter(Boolean))
+                );
+
+                return (
+                  <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
+                    <div className="px-5 py-4 border-b border-slate-800 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                            Tra Cứu & Thống Kê Số Lượng Bán Theo Từng Linh Kiện ({revenueReport.startDate} → {revenueReport.endDate})
+                          </h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Tìm kiếm tên linh kiện, hãng hoặc danh mục để kiểm tra chính xác sản phẩm đó đã bán được bao nhiêu chiếc trong khoảng thời gian đã chọn.
+                          </p>
+                        </div>
+                        <span className="text-xs text-slate-400 shrink-0">
+                          Hiển thị: <strong className="text-sky-400">{filteredSales.length}</strong> sản phẩm
+                        </span>
+                      </div>
+
+                      {/* Thanh Tìm Kiếm Sản Phẩm Trong Báo Cáo Doanh Thu */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            value={revProdSearch}
+                            onChange={(e) => setRevProdSearch(e.target.value)}
+                            placeholder="Nhập tên sản phẩm cần tra cứu số lượng bán (VD: RTX 4070, Core i5, Corsair, RAM DDR5...)"
+                            className="w-full pl-9 pr-20 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                          />
+                          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                          {revProdSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setRevProdSearch('')}
+                              className="absolute right-2.5 top-2 text-[11px] text-slate-400 hover:text-rose-400 font-semibold"
+                            >
+                              Xóa
+                            </button>
+                          )}
+                        </div>
+
+                        <select
+                          value={revCatFilter}
+                          onChange={(e) => setRevCatFilter(e.target.value)}
+                          className="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs font-semibold text-slate-200 focus:outline-none focus:border-sky-500"
+                        >
+                          <option value="ALL">-- Tất cả danh mục --</option>
+                          {distinctCategories.map((catName: any) => (
+                            <option key={catName} value={catName}>
+                              {catName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Khung Tóm Tắt Kết Quả Tra Cứu Sản Phẩm */}
+                      {isFiltering && (
+                        <div className="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/30 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                          <div>
+                            <span className="text-slate-400 text-[11px]">Từ khóa / Bộ lọc đang tra cứu:</span>
+                            <p className="font-bold text-sky-300 truncate mt-0.5">
+                              {revProdSearch ? `"${revProdSearch}"` : 'Tất cả'} {revCatFilter !== 'ALL' ? `• ${revCatFilter}` : ''}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 text-[11px]">Tổng số lượng đã bán trong kỳ:</span>
+                            <p className="font-mono font-black text-sm text-amber-400 mt-0.5">
+                              {matchedQtySold} sản phẩm
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 text-[11px]">Tổng doanh thu sản phẩm này:</span>
+                            <p className="font-mono font-black text-sm text-emerald-400 mt-0.5">
+                              {formatVnd(matchedRevenue)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left divide-y divide-slate-800">
+                        <thead className="bg-slate-950/80 text-slate-400 uppercase font-semibold">
+                          <tr>
+                            <th className="p-3.5">Mã SP</th>
+                            <th className="p-3.5">Tên Linh Kiện</th>
+                            <th className="p-3.5">Danh mục</th>
+                            <th className="p-3.5">Hãng</th>
+                            <th className="p-3.5 text-center">Số lượng đã bán</th>
+                            <th className="p-3.5 text-right">Doanh thu mang lại</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {filteredSales.length > 0 ? (
+                            filteredSales.map((ps: any) => (
+                              <tr key={ps.productId} className="hover:bg-slate-900/40">
+                                <td className="p-3.5 font-mono text-slate-400">#{ps.productId}</td>
+                                <td className="p-3.5 font-bold text-slate-200">{ps.productName}</td>
+                                <td className="p-3.5 text-slate-400">{ps.categoryName}</td>
+                                <td className="p-3.5 text-slate-300">{ps.brand}</td>
+                                <td className="p-3.5 text-center">
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full font-mono font-bold ${
+                                      Number(ps.quantitySold || 0) > 0
+                                        ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
+                                        : 'bg-slate-800 text-slate-500'
+                                    }`}
+                                  >
+                                    {ps.quantitySold} chiếc
+                                  </span>
+                                </td>
+                                <td className="p-3.5 text-right font-mono font-bold text-emerald-400">
+                                  {formatVnd(Number(ps.revenue || 0))}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={6} className="p-6 text-center text-slate-500">
+                                {isFiltering
+                                  ? `Không tìm thấy sản phẩm nào khớp với từ khóa "${revProdSearch}".`
+                                  : 'Chưa có linh kiện nào được bán trong khoảng thời gian này.'}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Bảng Chi Tiết Đơn Hàng & Xuất Hóa Đơn */}
               <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
