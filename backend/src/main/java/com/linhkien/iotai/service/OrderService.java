@@ -379,7 +379,7 @@ public class OrderService {
             }
         }
 
-        boolean isFullPcSet = (boughtCpu != null && boughtMb != null && boughtRam != null && boughtPsu != null) || catSlugs.size() >= 5;
+        boolean isFullPcSet = (boughtCpu != null && boughtMb != null && boughtRam != null) || catSlugs.size() >= 4;
         if (isFullPcSet) {
             String randomSuffix = String.valueOf(ThreadLocalRandom.current().nextInt(1000, 9999));
             String deviceCode = "PC-" + user.getUsername().toUpperCase().replaceAll("[^A-Z0-9]", "") + "-" + randomSuffix;

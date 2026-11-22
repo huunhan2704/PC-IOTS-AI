@@ -22,10 +22,10 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id")
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.user LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product p LEFT JOIN FETCH p.category WHERE o.id = :id")
     Optional<Order> findByIdWithItems(@Param("id") Long id);
 
-    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.orderCode = :orderCode")
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.user LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product p LEFT JOIN FETCH p.category WHERE o.orderCode = :orderCode")
     Optional<Order> findByOrderCodeWithItems(@Param("orderCode") String orderCode);
 
     long countByOrderStatus(OrderStatus orderStatus);

@@ -120,19 +120,21 @@ export const frm_ThanhToan: React.FC = () => {
             </button>
           </div>
 
-          {createdOrder.note && createdOrder.note.includes('[TẶNG KÈM ESP32 ĐÃ KÍCH HOẠT]') && (
-            <div className="max-w-lg mx-auto mt-3 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-left space-y-1.5">
-              <p className="text-xs font-extrabold text-emerald-400 uppercase tracking-wide">
-                🎁 Đã Cấp & Kích Hoạt Sẵn Module IoT ESP32 Theo Bộ PC!
-              </p>
-              <p className="text-xs text-slate-200 leading-relaxed">
-                {createdOrder.note}
-              </p>
-              <p className="text-[11px] text-slate-400">
-                Khi nhận máy, bạn chỉ cần mở phần mềm Desktop & đăng nhập bằng tài khoản Shop để hệ thống tự động giám sát và kích hoạt Trợ lý AI!
+          {/* Waiting for Admin/Staff Confirmation Notice */}
+          <div className="max-w-lg mx-auto mt-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-left space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+              <p className="text-xs font-extrabold text-amber-300 uppercase tracking-wide">
+                Trạng Thái: Chờ Nhân Viên / Admin Xác Nhận Đơn Hàng
               </p>
             </div>
-          )}
+            <p className="text-xs text-slate-200 leading-relaxed">
+              Đơn hàng của bạn đã được chuyển sang trạng thái <strong>CHỜ XÁC NHẬN</strong>. Vui lòng đợi Nhân viên hoặc Quản trị viên kiểm tra và xác nhận đơn hàng.
+            </p>
+            <p className="text-[11px] text-sky-300 leading-relaxed">
+              💡 <strong>Quyền lợi Build PC:</strong> Nếu đơn hàng của bạn là một bộ PC lắp ráp, ngay tại thời điểm Nhân viên/Admin bấm <strong>Xác nhận đơn hàng</strong>, hệ thống sẽ <strong>tự động sinh 1 Thiết bị Node IoT ESP32</strong> đã cấu hình sẵn và gắn trực tiếp vào tài khoản của bạn!
+            </p>
+          </div>
         </div>
 
         {/* VietQR Bank Transfer Box if applicable */}

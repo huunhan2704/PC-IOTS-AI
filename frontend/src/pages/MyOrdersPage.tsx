@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Package, Clock, XCircle, ArrowLeft } from 'lucide-react';
+import { Package, Clock, CheckCircle2, Activity, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { orderService } from '@/services/orderService';
 import { OrderDto, OrderStatus } from '@/types';
@@ -14,6 +14,7 @@ export const MyOrdersPage: React.FC = () => {
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['my-orders'],
     queryFn: orderService.getMyOrders,
+    refetchInterval: 6000,
   });
 
   const cancelMutation = useMutation({
@@ -108,6 +109,43 @@ export const MyOrdersPage: React.FC = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Trạng thái Chờ Xác Nhận vs Đã Xác Nhận & Cấp Thiết Bị IoT */}
+              {order.orderStatus === 'CHO_XAC_NHAN' ? (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs">
+                  <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-amber-300">
+                      Đang chờ Nhân viên / Quản trị viên xác nhận đơn hàng
+                    </p>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Vui lòng đợi hệ thống duyệt đơn. Nếu đơn hàng là bộ PC lắp ráp, hệ thống sẽ tự động sinh 1 thiết bị Node IoT ESP32 gắn vào tài khoản ngay khi đơn được xác nhận.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                order.note &&
+                order.note.includes('Mã Node IoT:') && (
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-emerald-400">
+                          Đơn hàng Bộ PC đã được xác nhận & Tự động cấp Thiết bị IoT!
+                        </p>
+                        <p className="text-[11px] text-slate-200">{order.note}</p>
+                      </div>
+                    </div>
+                    <Link
+                      to="/iot"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] shrink-0 transition"
+                    >
+                      <Activity className="w-3.5 h-3.5" />
+                      Mở IoT Live
+                    </Link>
+                  </div>
+                )
+              )}
 
               {/* Footer Total */}
               <div className="pt-3 border-t border-slate-800 flex justify-between items-baseline text-xs">
