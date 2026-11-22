@@ -10,13 +10,14 @@ import { toast } from 'sonner';
 
 export const frm_GioHang: React.FC = () => {
   const navigate = useNavigate();
-  const { items, updateQuantity, removeItem, clearCart, coupon, applyCoupon, removeCoupon, getSubtotal, getShippingFee, getTotalAmount } = useCartStore();
+  const { items, updateQuantity, removeItem, clearCart, coupon, applyCoupon, removeCoupon, getSubtotal, getDiscountAmount, getShippingFee, getTotalAmount } = useCartStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
 
   const [couponCode, setCouponCode] = useState('');
   const [isApplying, setIsApplying] = useState(false);
 
   const subtotal = getSubtotal();
+  const discountAmount = getDiscountAmount();
   const shippingFee = getShippingFee();
   const totalAmount = getTotalAmount();
 
@@ -223,10 +224,10 @@ export const frm_GioHang: React.FC = () => {
                 <span className="font-mono font-semibold text-slate-100">{formatVnd(subtotal)}</span>
               </div>
 
-              {coupon && (
+              {coupon && discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-400 font-semibold">
                   <span>Giảm giá ({coupon.code}):</span>
-                  <span className="font-mono">-{formatVnd(coupon.discountAmount)}</span>
+                  <span className="font-mono">-{formatVnd(discountAmount)}</span>
                 </div>
               )}
 

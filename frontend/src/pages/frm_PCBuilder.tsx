@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Wrench,
@@ -25,6 +26,7 @@ import { Button } from '@/components/ui/Button';
 import { toast } from 'sonner';
 
 export const frm_PCBuilder: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {
     cpu,
@@ -96,6 +98,11 @@ export const frm_PCBuilder: React.FC = () => {
   };
 
   const handleAddAllToCart = () => {
+    if (!isAuthenticated) {
+      toast.warning('Vui lòng đăng nhập tài khoản trước khi mua hàng!');
+      navigate('/dang-nhap');
+      return;
+    }
     const products = getSelectedProducts();
     if (products.length === 0) {
       toast.warning('Vui lòng chọn ít nhất 1 linh kiện trước khi thêm vào giỏ');

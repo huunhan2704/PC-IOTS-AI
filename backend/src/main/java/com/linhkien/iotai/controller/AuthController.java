@@ -62,20 +62,36 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthDto.AuthResponse>> registerUser(@Valid @RequestBody AuthDto.RegisterRequest registerRequest) {
-        if (userRepository.existsByUsername(registerRequest.getUsername())) {
-            throw new BadRequestException("Tên đăng nhập '" + registerRequest.getUsername() + "' đã được sử dụng");
+        String username = registerRequest.getUsername() != null ? registerRequest.getUsername().trim() : "";
+        String email = registerRequest.getEmail() != null ? registerRequest.getEmail().trim().toLowerCase() : "";
+        String phone = registerRequest.getPhone() != null ? registerRequest.getPhone().trim() : "";
+
+        if (!email.matches("^[a-zA-Z0-9._%+-]+@gmail\\.com$")) {
+            throw new BadRequestException("Email bắt buộc phải có định dạng @gmail.com (VD: tenban@gmail.com)");
         }
 
-        if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            throw new BadRequestException("Email '" + registerRequest.getEmail() + "' đã được đăng ký");
+        if (!phone.matches("^0\\d{9}$")) {
+            throw new BadRequestException("Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0 (VD: 0912345678)");
+        }
+
+        if (userRepository.existsByUsername(username)) {
+            throw new BadRequestException("Tên đăng nhập '" + username + "' đã được sử dụng");
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            throw new BadRequestException("Email '" + email + "' đã được đăng ký bởi tài khoản khác");
+        }
+
+        if (userRepository.existsByPhone(phone)) {
+            throw new BadRequestException("Số điện thoại '" + phone + "' đã được đăng ký bởi tài khoản khác");
         }
 
         User user = User.builder()
-                .username(registerRequest.getUsername())
+                .username(username)
                 .passwordHash(passwordEncoder.encode(registerRequest.getPassword()))
-                .fullName(registerRequest.getFullName())
-                .email(registerRequest.getEmail())
-                .phone(registerRequest.getPhone())
+                .fullName(registerRequest.getFullName().trim())
+                .email(email)
+                .phone(phone)
                 .role(Role.ROLE_CUSTOMER)
                 .build();
 

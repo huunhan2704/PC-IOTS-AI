@@ -36,6 +36,19 @@ public class AIDiagnosticService {
         IotDevice device = deviceRepository.findByDeviceCode(deviceCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Thiết bị không tồn tại: " + deviceCode));
 
+        if (device.getStatus() != com.linhkien.iotai.entity.enums.DeviceStatus.ONLINE
+                && device.getStatus() != com.linhkien.iotai.entity.enums.DeviceStatus.WARNING) {
+            throw new com.linhkien.iotai.exception.BadRequestException(
+                    "Thiết bị " + deviceCode + " đang OFFLINE (chưa kết nối PC). Vui lòng mở ứng dụng Desktop Agent kết nối máy tính lên trạng thái ONLINE trước khi Đo Đạc Thật!");
+        }
+
+        // Xóa toàn bộ dữ liệu mô phỏng (SIMULATED) trước khi đo đạc thật để không bị lẫn số giả
+        telemetryLogRepository.deleteSimulatedByDeviceId(device.getId());
+
+        return analyzeDeviceLogs(device);
+    }
+
+    private AiDto.DiagnosticReport analyzeDeviceLogs(IotDevice device) {
         LocalDateTime since = LocalDateTime.now().minusDays(30);
         List<TelemetryLog> allLogs = telemetryLogRepository.findByDeviceIdAndRecordedAtAfter(device.getId(), since);
 
@@ -266,7 +279,13 @@ public class AIDiagnosticService {
 
     @Transactional
     public AiDto.DiagnosticReport getLatestDiagnostic(String deviceCode) {
-        return runDiagnostic(deviceCode);
+        IotDevice device = deviceRepository.findByDeviceCode(deviceCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Thiết bị không tồn tại: " + deviceCode));
+        if (device.getStatus() != com.linhkien.iotai.entity.enums.DeviceStatus.ONLINE
+                && device.getStatus() != com.linhkien.iotai.entity.enums.DeviceStatus.WARNING) {
+            return buildEmptyReport(device);
+        }
+        return analyzeDeviceLogs(device);
     }
 
     @Transactional
@@ -324,9 +343,13 @@ public class AIDiagnosticService {
 
         if ("RESET".equalsIgnoreCase(scenario)) {
             // Delete simulated bottleneck records from DB and recalculate cleanly
+            telemetryLogRepository.deleteSimulatedByDeviceId(device.getId());
             telemetryLogRepository.deleteByDeviceIdAndOverheatOrHighStress(device.getId());
-            return runDiagnostic(deviceCode);
+            return analyzeDeviceLogs(device);
         }
+
+        // Xóa dữ liệu mô phỏng cũ trước khi nạp kịch bản mới
+        telemetryLogRepository.deleteSimulatedByDeviceId(device.getId());
 
         LocalDateTime now = LocalDateTime.now();
         List<TelemetryLog> fakeLogs = new ArrayList<>();
@@ -407,13 +430,13 @@ public class AIDiagnosticService {
             logItem.setCpuClockMhz(4200);
             logItem.setAmbientTemp(27.5f + (float)(Math.random() * 2.0));
             logItem.setAmbientHumidity(58.0f + (float)(Math.random() * 5.0));
-            logItem.setStatusFlag(logItem.getCpuTemp() > 85.0f ? "WARNING" : "NORMAL");
+            logItem.setStatusFlag("SIMULATED");
 
             fakeLogs.add(logItem);
         }
 
         telemetryLogRepository.saveAll(fakeLogs);
-        return runDiagnostic(deviceCode);
+        return analyzeDeviceLogs(device);
     }
 
     private float round1(float val) {

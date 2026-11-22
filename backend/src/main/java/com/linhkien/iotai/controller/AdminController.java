@@ -416,17 +416,26 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createUser(@RequestBody Map<String, Object> req) {
         String username = ((String) req.get("username")).trim();
-        String email = ((String) req.get("email")).trim();
+        String email = ((String) req.get("email")).trim().toLowerCase();
         String password = (String) req.getOrDefault("password", "123456");
         String fullName = (String) req.get("fullName");
-        String phone = (String) req.get("phone");
+        String phone = req.get("phone") != null ? ((String) req.get("phone")).trim() : "";
         String roleStr = (String) req.getOrDefault("role", "ROLE_CUSTOMER");
 
+        if (!email.matches("^[a-zA-Z0-9._%+-]+@gmail\\.com$")) {
+            throw new com.linhkien.iotai.exception.BadRequestException("Email bắt buộc phải có định dạng @gmail.com");
+        }
+        if (!phone.isEmpty() && !phone.matches("^0\\d{9}$")) {
+            throw new com.linhkien.iotai.exception.BadRequestException("Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0");
+        }
         if (userRepository.existsByUsername(username)) {
-            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại");
+            throw new com.linhkien.iotai.exception.BadRequestException("Tên đăng nhập đã tồn tại");
         }
         if (userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("Email đã tồn tại");
+            throw new com.linhkien.iotai.exception.BadRequestException("Email đã tồn tại");
+        }
+        if (!phone.isEmpty() && userRepository.existsByPhone(phone)) {
+            throw new com.linhkien.iotai.exception.BadRequestException("Số điện thoại đã tồn tại");
         }
 
         User newUser = User.builder()

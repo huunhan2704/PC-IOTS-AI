@@ -21,8 +21,9 @@ import { toast } from 'sonner';
 
 export const frm_ThanhToan: React.FC = () => {
   const navigate = useNavigate();
-  const { items, coupon, getSubtotal, getShippingFee, getTotalAmount, clearCart } = useCartStore();
+  const { items, coupon, getSubtotal, getDiscountAmount, getShippingFee, getTotalAmount, clearCart } = useCartStore();
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const [customerName, setCustomerName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -34,6 +35,7 @@ export const frm_ThanhToan: React.FC = () => {
   const [createdOrder, setCreatedOrder] = useState<OrderDto | null>(null);
 
   const subtotal = getSubtotal();
+  const discountAmount = getDiscountAmount();
   const shippingFee = getShippingFee();
   const totalAmount = getTotalAmount();
 
@@ -44,8 +46,17 @@ export const frm_ThanhToan: React.FC = () => {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated()) {
+      toast.warning('Vui lòng đăng nhập tài khoản trước khi đặt mua hàng!');
+      navigate('/dang-nhap');
+      return;
+    }
     if (!customerName.trim() || !phone.trim() || !shippingAddress.trim() || !city.trim()) {
       toast.warning('Vui lòng điền đầy đủ thông tin giao hàng bắt buộc');
+      return;
+    }
+    if (!/^0\d{9}$/.test(phone.trim())) {
+      toast.error('Số điện thoại nhận hàng phải gồm đúng 10 chữ số và bắt đầu bằng số 0');
       return;
     }
 
@@ -388,10 +399,10 @@ export const frm_ThanhToan: React.FC = () => {
                 <span>Tạm tính:</span>
                 <span className="font-mono">{formatVnd(subtotal)}</span>
               </div>
-              {coupon && (
+              {coupon && discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-400 font-semibold">
                   <span>Giảm giá ({coupon.code}):</span>
-                  <span className="font-mono">-{formatVnd(coupon.discountAmount)}</span>
+                  <span className="font-mono">-{formatVnd(discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between">

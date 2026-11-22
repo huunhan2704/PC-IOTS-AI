@@ -303,18 +303,31 @@ export const frm_AdminQuanTri: React.FC = () => {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       adminService.updateOrderStatus(id, status),
-    onSuccess: () => {
+    onSuccess: (updatedOrder) => {
       refetchOrders();
-      toast.success('Đã cập nhật trạng thái đơn hàng');
+      queryClient.invalidateQueries({ queryKey: ['admin-devices'] });
+      if (detailOrder && updatedOrder && detailOrder.id === updatedOrder.id) {
+        setDetailOrder(updatedOrder);
+      }
+      toast.success('Đã cập nhật trạng thái đơn hàng thành công!');
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng');
     },
   });
 
   const cancelOrderMutation = useMutation({
     mutationFn: ({ id, reason }: { id: number; reason: string }) =>
       adminService.cancelOrder(id, reason),
-    onSuccess: () => {
+    onSuccess: (updatedOrder) => {
       refetchOrders();
+      if (detailOrder && updatedOrder && detailOrder.id === updatedOrder.id) {
+        setDetailOrder(updatedOrder);
+      }
       toast.success('Đã hủy đơn và hoàn trả linh kiện về kho an toàn (BR14)');
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Không thể hủy đơn hàng');
     },
   });
 
@@ -725,8 +738,8 @@ export const frm_AdminQuanTri: React.FC = () => {
             ))}
           </div>
 
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
-            <table className="w-full text-xs text-left divide-y divide-slate-800">
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-x-auto">
+            <table className="w-full min-w-[720px] text-xs text-left divide-y divide-slate-800">
               <thead className="bg-slate-950/80 text-slate-400 uppercase font-semibold">
                 <tr>
                   <th className="p-3.5">Mã đơn</th>
@@ -741,14 +754,37 @@ export const frm_AdminQuanTri: React.FC = () => {
                 {ordersPage?.content.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-900/40">
                     <td className="p-3.5 font-mono font-bold text-sky-400">
-                      <button
-                        type="button"
-                        onClick={() => setDetailOrder(order)}
-                        className="hover:underline text-left"
-                        title="Xem chi tiết đơn hàng"
-                      >
-                        {order.orderCode}
-                      </button>
+                      <div className="flex flex-col items-start gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDetailOrder(order)}
+                          className="hover:underline text-left"
+                          title="Bấm để xem chi tiết & xác nhận đơn hàng"
+                        >
+                          {order.orderCode}
+                        </button>
+                        {/* Nút xác nhận nhanh hiển thị ngay cột đầu trên màn hình điện thoại */}
+                        {order.orderStatus === 'CHO_XAC_NHAN' && (
+                          <div className="flex items-center gap-1 sm:hidden">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateStatusMutation.mutate({ id: order.id, status: 'DA_XAC_NHAN' })
+                              }
+                              className="px-2 py-1 rounded-md bg-sky-500 text-slate-950 font-sans font-bold text-[10px]"
+                            >
+                              ✓ Xác nhận
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDetailOrder(order)}
+                              className="px-2 py-1 rounded-md bg-slate-800 text-slate-200 font-sans font-semibold text-[10px]"
+                            >
+                              Chi tiết
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3.5">
                       <p className="font-bold text-slate-200">{order.customerName}</p>
@@ -1562,7 +1598,21 @@ export const frm_AdminQuanTri: React.FC = () => {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            createUserMutation.mutate(userForm);
+            const normalizedEmail = userForm.email.trim().toLowerCase();
+            if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(normalizedEmail)) {
+              toast.error('Email bắt buộc phải có định dạng @gmail.com');
+              return;
+            }
+            const normalizedPhone = userForm.phone.trim();
+            if (normalizedPhone && !/^0\d{9}$/.test(normalizedPhone)) {
+              toast.error('Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0');
+              return;
+            }
+            createUserMutation.mutate({
+              ...userForm,
+              email: normalizedEmail,
+              phone: normalizedPhone,
+            });
           }}
           className="space-y-4"
         >
@@ -1950,6 +2000,80 @@ export const frm_AdminQuanTri: React.FC = () => {
                 <span className="font-mono">{formatVnd(Number(detailOrder.finalAmount || 0))}</span>
               </p>
             </div>
+
+            {/* Order Status Transition Actions right inside Modal (Convenient for Mobile & Desktop) */}
+            {(detailOrder.orderStatus === 'CHO_XAC_NHAN' ||
+              detailOrder.orderStatus === 'DA_XAC_NHAN' ||
+              detailOrder.orderStatus === 'DANG_GIAO') && (
+              <div className="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <p className="font-bold text-sky-300 text-xs uppercase tracking-wider">
+                    Xử Lý Quy Trình Đơn Hàng (BR14)
+                  </p>
+                  <p className="text-[11px] text-slate-300">
+                    {detailOrder.orderStatus === 'CHO_XAC_NHAN'
+                      ? 'Xác nhận đơn hàng để duyệt xuất kho và tự động cấp thiết bị IoT ESP32 (nếu là bộ PC).'
+                      : detailOrder.orderStatus === 'DA_XAC_NHAN'
+                      ? 'Đơn đã được xác nhận. Bấm Giao Hàng khi bàn giao cho đơn vị vận chuyển.'
+                      : 'Đơn đang giao. Bấm Hoàn Tất khi khách hàng đã nhận hàng thành công.'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {detailOrder.orderStatus === 'CHO_XAC_NHAN' && (
+                    <>
+                      <Button
+                        size="sm"
+                        disabled={updateStatusMutation.isPending}
+                        onClick={() =>
+                          updateStatusMutation.mutate({ id: detailOrder.id, status: 'DA_XAC_NHAN' })
+                        }
+                      >
+                        <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                        Xác Nhận Đơn
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={cancelOrderMutation.isPending}
+                        onClick={() =>
+                          cancelOrderMutation.mutate({
+                            id: detailOrder.id,
+                            reason: 'Hủy theo yêu cầu quản trị viên',
+                          })
+                        }
+                      >
+                        <XCircle className="w-3.5 h-3.5 mr-1" />
+                        Hủy Đơn
+                      </Button>
+                    </>
+                  )}
+                  {detailOrder.orderStatus === 'DA_XAC_NHAN' && (
+                    <Button
+                      size="sm"
+                      disabled={updateStatusMutation.isPending}
+                      onClick={() =>
+                        updateStatusMutation.mutate({ id: detailOrder.id, status: 'DANG_GIAO' })
+                      }
+                    >
+                      <Truck className="w-3.5 h-3.5 mr-1" />
+                      Chuyển Giao Hàng
+                    </Button>
+                  )}
+                  {detailOrder.orderStatus === 'DANG_GIAO' && (
+                    <Button
+                      size="sm"
+                      disabled={updateStatusMutation.isPending}
+                      onClick={() =>
+                        updateStatusMutation.mutate({ id: detailOrder.id, status: 'DA_GIAO' })
+                      }
+                    >
+                      <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                      Hoàn Tất Đơn
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Footer Actions */}
             <div className="flex justify-end gap-2 pt-1">

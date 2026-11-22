@@ -21,8 +21,25 @@ export const RegisterPage: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !fullName.trim() || !email.trim() || !password.trim()) {
-      toast.warning('Vui lòng điền đầy đủ các thông tin bắt buộc');
+    if (!username.trim() || !fullName.trim() || !email.trim() || !phone.trim() || !password.trim()) {
+      toast.warning('Vui lòng điền đầy đủ các thông tin bắt buộc (bao gồm Email @gmail.com và Số điện thoại)');
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(normalizedEmail)) {
+      toast.error('Email bắt buộc phải có định dạng @gmail.com (VD: example@gmail.com)');
+      return;
+    }
+
+    const normalizedPhone = phone.trim();
+    if (!/^0\d{9}$/.test(normalizedPhone)) {
+      toast.error('Số điện thoại phải gồm đúng 10 chữ số và bắt đầu bằng số 0 (VD: 0912345678)');
+      return;
+    }
+
+    if (password.trim().length < 6) {
+      toast.error('Mật khẩu phải có tối thiểu 6 ký tự');
       return;
     }
 
@@ -36,8 +53,8 @@ export const RegisterPage: React.FC = () => {
       const res = await authService.register({
         username: username.trim(),
         fullName: fullName.trim(),
-        email: email.trim(),
-        phone: phone.trim() || undefined,
+        email: normalizedEmail,
+        phone: normalizedPhone,
         password: password.trim(),
       });
       loginStore(res.token, res.user);
@@ -82,19 +99,21 @@ export const RegisterPage: React.FC = () => {
         />
 
         <Input
-          label="Email *"
+          label="Email (@gmail.com) *"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="nhan.tran@example.com"
+          placeholder="huunhan@gmail.com"
           required
         />
 
         <Input
-          label="Số điện thoại"
+          label="Số điện thoại (10 số) *"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
           placeholder="0912345678"
+          maxLength={10}
+          required
         />
 
         <Input

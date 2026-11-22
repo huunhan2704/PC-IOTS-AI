@@ -44,9 +44,23 @@ export const App: React.FC = () => {
           <Route path="/danh-muc/:slug" element={<FrmTrangChu />} />
           <Route path="/san-pham/:slug" element={<FrmChiTietLinhKien />} />
           <Route path="/gio-hang" element={<FrmGioHang />} />
-          <Route path="/thanh-toan" element={<FrmThanhToan />} />
+          <Route
+            path="/thanh-toan"
+            element={
+              <ProtectedRoute>
+                <FrmThanhToan />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/iot" element={<FrmDashboardIoT />} />
-          <Route path="/tu-van-ai" element={<FrmTuVanAI />} />
+          <Route
+            path="/tu-van-ai"
+            element={
+              <ProtectedRoute>
+                <FrmTuVanAI />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/pc-builder" element={<FrmPCBuilder />} />
           <Route
             path="/admin/*"

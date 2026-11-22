@@ -67,9 +67,11 @@ export const Header: React.FC = () => {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSuggest(false);
     if (searchQuery.trim()) {
-      setShowSuggest(false);
       navigate(`/?keyword=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate('/');
     }
   };
 
@@ -295,6 +297,56 @@ export const Header: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Search Bar & Quick Navigation */}
+      <div className="md:hidden px-4 pb-3 space-y-2 border-t border-slate-800/40 pt-2">
+        <form onSubmit={handleSearchSubmit} className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm CPU, VGA RTX 4070, RAM DDR5..."
+            className="w-full pl-9 pr-16 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500"
+          />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+          <button
+            type="submit"
+            className="absolute right-1.5 top-1.5 px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 text-[11px] font-bold"
+          >
+            Tìm
+          </button>
+        </form>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:hidden">
+          <Link
+            to="/pc-builder"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 whitespace-nowrap"
+          >
+            <Wrench className="w-3 h-3" />
+            PC Builder
+          </Link>
+          <Link
+            to="/iot"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap"
+          >
+            <Activity className="w-3 h-3" />
+            IoT Live
+          </Link>
+          <Link
+            to="/tu-van-ai"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 whitespace-nowrap"
+          >
+            <Sparkles className="w-3 h-3" />
+            Tư Vấn AI
+          </Link>
+          <Link
+            to="/bao-hanh"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 whitespace-nowrap"
+          >
+            <ShieldCheck className="w-3 h-3" />
+            Bảo Hành
+          </Link>
         </div>
       </div>
     </header>

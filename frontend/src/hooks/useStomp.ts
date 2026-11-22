@@ -4,6 +4,8 @@ import SockJS from 'sockjs-client';
 
 let globalClient: Client | null = null;
 let clientSubscribers = 0;
+const connectListeners = new Set<() => void>();
+const disconnectListeners = new Set<() => void>();
 
 const rawBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
 const normalizedBase = rawBaseUrl
@@ -19,6 +21,22 @@ function getStompClient(): Client {
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
       debug: () => {}, // silence debug logs in production
+      onConnect: () => {
+        connectListeners.forEach((fn) => {
+          try {
+            fn();
+          } catch (e) {
+            console.error('STOMP connect listener error', e);
+          }
+        });
+      },
+      onWebSocketClose: () => {
+        disconnectListeners.forEach((fn) => {
+          try {
+            fn();
+          } catch (e) {}
+        });
+      },
     });
     globalClient.activate();
   }
@@ -31,12 +49,24 @@ export function useStompTopic<T>(topic: string, onMessage: (data: T) => void) {
   callbackRef.current = onMessage;
 
   useEffect(() => {
+    if (!topic || topic.endsWith('/')) {
+      setConnected(false);
+      return;
+    }
+
     clientSubscribers++;
     const client = getStompClient();
 
     let subscription: any = null;
 
     const setupSubscription = () => {
+      if (!client.connected) return;
+      if (subscription) {
+        try {
+          subscription.unsubscribe();
+        } catch (e) {}
+        subscription = null;
+      }
       setConnected(true);
       subscription = client.subscribe(topic, (msg) => {
         try {
@@ -48,23 +78,25 @@ export function useStompTopic<T>(topic: string, onMessage: (data: T) => void) {
       });
     };
 
-    if (client.connected) {
-      setupSubscription();
-    } else {
-      const origOnConnect = client.onConnect;
-      client.onConnect = (frame) => {
-        if (origOnConnect) origOnConnect(frame);
-        setupSubscription();
-      };
-    }
-
-    client.onWebSocketClose = () => {
+    const handleDisconnect = () => {
       setConnected(false);
     };
 
+    connectListeners.add(setupSubscription);
+    disconnectListeners.add(handleDisconnect);
+
+    if (client.connected) {
+      setupSubscription();
+    }
+
     return () => {
+      connectListeners.delete(setupSubscription);
+      disconnectListeners.delete(handleDisconnect);
       if (subscription) {
-        subscription.unsubscribe();
+        try {
+          subscription.unsubscribe();
+        } catch (e) {}
+        subscription = null;
       }
       clientSubscribers--;
       if (clientSubscribers <= 0 && globalClient) {

@@ -55,7 +55,7 @@ public class PcBuilderService {
             }
         }
 
-        // BR02: RAM Generation Match
+        // BR02: RAM Generation Match (Mainboard <-> RAM, and CPU <-> RAM when Mainboard is not selected)
         if (mb != null && ram != null) {
             String mbRamGen = mb.getSpecs() != null ? mb.getSpecs().getRamGeneration() : null;
             String ramGen = ram.getSpecs() != null ? ram.getSpecs().getRamGeneration() : null;
@@ -71,6 +71,29 @@ public class PcBuilderService {
                         .rule("BR02")
                         .message("Tương thích chuẩn RAM: Mainboard và RAM cùng chuẩn " + ramGen)
                         .build());
+            }
+        } else if (cpu != null && ram != null) {
+            String cpuSocket = cpu.getSpecs() != null ? cpu.getSpecs().getSocket() : null;
+            String ramGen = ram.getSpecs() != null ? ram.getSpecs().getRamGeneration() : null;
+            if (cpuSocket != null && ramGen != null) {
+                if ("AM4".equalsIgnoreCase(cpuSocket) && !"DDR4".equalsIgnoreCase(ramGen)) {
+                    issues.add(PcBuilderDto.IssueItem.builder()
+                            .rule("BR02")
+                            .severity("ERROR")
+                            .message("Không tương thích chuẩn RAM: CPU socket AM4 chỉ hỗ trợ RAM DDR4 (không hỗ trợ " + ramGen + ")")
+                            .build());
+                } else if ("AM5".equalsIgnoreCase(cpuSocket) && !"DDR5".equalsIgnoreCase(ramGen)) {
+                    issues.add(PcBuilderDto.IssueItem.builder()
+                            .rule("BR02")
+                            .severity("ERROR")
+                            .message("Không tương thích chuẩn RAM: CPU socket AM5 chỉ hỗ trợ RAM DDR5 (không hỗ trợ " + ramGen + ")")
+                            .build());
+                } else {
+                    passed.add(PcBuilderDto.PassedItem.builder()
+                            .rule("BR02")
+                            .message("Tương thích chuẩn RAM: CPU socket " + cpuSocket + " hỗ trợ chuẩn RAM " + ramGen)
+                            .build());
+                }
             }
         }
 
@@ -159,6 +182,27 @@ public class PcBuilderService {
             }
         }
 
+        // BR06B: Cooler Radiator / Size vs Case Form Factor
+        if (cooler != null && pcCase != null && cooler.getSpecs() != null && pcCase.getSpecs() != null) {
+            String coolerDim = cooler.getSpecs().getDimensions() != null ? cooler.getSpecs().getDimensions().toUpperCase() : "";
+            String coolerName = cooler.getName() != null ? cooler.getName().toUpperCase() : "";
+            String supportedForms = pcCase.getSpecs().getSupportedFormFactors() != null ? pcCase.getSpecs().getSupportedFormFactors().toUpperCase() : "";
+            boolean is360Aio = coolerDim.contains("360") || coolerName.contains("360MM") || coolerName.contains("360");
+            boolean supportsAtx = Arrays.stream(supportedForms.split(",")).map(String::trim).anyMatch(s -> s.equals("ATX") || s.equals("E-ATX"));
+            if (is360Aio && !supportsAtx) {
+                issues.add(PcBuilderDto.IssueItem.builder()
+                        .rule("BR06")
+                        .severity("ERROR")
+                        .message("Kích thước Két nước AIO không vừa vỏ Case: Tản nhiệt nước 360mm (" + cooler.getName() + ") không lắp vừa vỏ Case M-ATX/Mini-ITX nhỏ gọn (" + pcCase.getName() + ")")
+                        .build());
+            } else {
+                passed.add(PcBuilderDto.PassedItem.builder()
+                        .rule("BR06")
+                        .message("Kích thước Tản nhiệt tương thích: " + cooler.getName() + " lắp vừa vỏ Case " + pcCase.getName())
+                        .build());
+            }
+        }
+
         // Calculate Total Price
         BigDecimal totalPrice = BigDecimal.ZERO;
         List<Product> allSelected = Arrays.asList(cpu, mb, ram, gpu, ssd, psu, cooler, pcCase);
@@ -208,6 +252,52 @@ public class PcBuilderService {
                     .compatible(false)
                     .messages(List.of("Không tìm thấy thông tin một trong hai sản phẩm."))
                     .build();
+        }
+
+        if (a.getId().equals(b.getId())) {
+            return PcBuilderDto.QuickCheckResponse.builder()
+                    .compatible(false)
+                    .messages(List.of("Hai sản phẩm đang chọn là cùng một linh kiện. Vui lòng chọn một linh kiện thuộc nhóm khác để kiểm tra ghép nối."))
+                    .build();
+        }
+
+        String catA = (a.getCategory() != null && a.getCategory().getSlug() != null) ? a.getCategory().getSlug().toLowerCase().trim() : "";
+        String catB = (b.getCategory() != null && b.getCategory().getSlug() != null) ? b.getCategory().getSlug().toLowerCase().trim() : "";
+        String catNameA = (a.getCategory() != null && a.getCategory().getName() != null) ? a.getCategory().getName() : catA.toUpperCase();
+
+        // Kiểm tra trường hợp chọn 2 linh kiện cùng 1 danh mục
+        if (!catA.isEmpty() && catA.equals(catB)) {
+            if ("ram".equals(catA)) {
+                String genA = a.getSpecs() != null ? a.getSpecs().getRamGeneration() : null;
+                String genB = b.getSpecs() != null ? b.getSpecs().getRamGeneration() : null;
+                Integer busA = a.getSpecs() != null ? a.getSpecs().getRamBus() : null;
+                Integer busB = b.getSpecs() != null ? b.getSpecs().getRamBus() : null;
+                if (genA != null && genB != null && !genA.equalsIgnoreCase(genB)) {
+                    return PcBuilderDto.QuickCheckResponse.builder()
+                            .compatible(false)
+                            .messages(List.of("Không tương thích chuẩn RAM (BR02): Không thể cắm chung thanh RAM " + genA + " (" + a.getName() + ") với thanh RAM " + genB + " (" + b.getName() + ") trên cùng một Bo mạch chủ."))
+                            .build();
+                }
+                List<String> ramMsgs = new ArrayList<>();
+                ramMsgs.add("Cùng chuẩn bộ nhớ " + (genA != null ? genA : "RAM") + ": Có thể cắm chạy Dual-Channel nếu Bo mạch chủ còn trống khe RAM.");
+                if (busA != null && busB != null && !busA.equals(busB)) {
+                    ramMsgs.add("Lưu ý: Hai thanh RAM khác mức xung Bus (" + busA + "MHz và " + busB + "MHz), hệ thống sẽ tự động hạ xung chạy theo thanh thấp hơn (" + Math.min(busA, busB) + "MHz).");
+                }
+                return PcBuilderDto.QuickCheckResponse.builder()
+                        .compatible(true)
+                        .messages(ramMsgs)
+                        .build();
+            } else if ("ssd".equals(catA)) {
+                return PcBuilderDto.QuickCheckResponse.builder()
+                        .compatible(true)
+                        .messages(List.of("Hai ổ cứng lưu trữ SSD có thể lắp chạy song song nếu Bo mạch chủ còn trống khe cắm M.2 NVMe / cổng SATA."))
+                        .build();
+            } else {
+                return PcBuilderDto.QuickCheckResponse.builder()
+                        .compatible(false)
+                        .messages(List.of("Xung đột danh mục linh kiện: Cả hai sản phẩm đều là " + catNameA + " (" + a.getName() + " và " + b.getName() + "). Một bộ máy tính tiêu chuẩn chỉ lắp 1 " + catNameA + " duy nhất — vui lòng chọn linh kiện thuộc danh mục khác để kiểm tra tương thích!"))
+                        .build();
+            }
         }
 
         PcBuilderDto.BuildSelection selection = new PcBuilderDto.BuildSelection();

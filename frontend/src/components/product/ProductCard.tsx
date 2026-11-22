@@ -1,17 +1,30 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Eye, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import { ProductDto } from '@/types';
 import { PriceTag } from '@/components/ui/PriceTag';
 import { Badge } from '@/components/ui/Badge';
 import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   product: ProductDto;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  const handleAddToCart = () => {
+    if (!isAuthenticated()) {
+      toast.warning('Vui lòng đăng nhập tài khoản trước khi mua hàng!');
+      navigate('/dang-nhap');
+      return;
+    }
+    addItem(product, 1);
+  };
 
   // Derive key spec chips
   const chips: string[] = [];
@@ -105,7 +118,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </Link>
 
         <button
-          onClick={() => addItem(product, 1)}
+          onClick={handleAddToCart}
           disabled={isOutOfStock}
           className="inline-flex items-center justify-center p-2 rounded-lg text-slate-950 font-bold bg-sky-500 hover:bg-sky-400 disabled:opacity-30 disabled:pointer-events-none transition shadow-sm shadow-sky-500/20 active:scale-95"
           title="Thêm nhanh vào giỏ hàng"

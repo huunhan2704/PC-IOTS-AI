@@ -71,11 +71,22 @@ public class GeneralAppService {
             predicates.add(cb.isTrue(root.get("isActive")));
 
             if (keyword != null && !keyword.isBlank()) {
-                String like = "%" + keyword.toLowerCase().trim() + "%";
-                predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("name")), like),
-                        cb.like(cb.lower(root.get("brand")), like)
-                ));
+                jakarta.persistence.criteria.Join<Object, Object> categoryJoin = root.join("category", jakarta.persistence.criteria.JoinType.LEFT);
+                jakarta.persistence.criteria.Join<Object, Object> specsJoin = root.join("specs", jakarta.persistence.criteria.JoinType.LEFT);
+                String[] tokens = keyword.toLowerCase().trim().split("\\s+");
+                for (String token : tokens) {
+                    if (token.isBlank() || "socket".equals(token)) continue;
+                    String like = "%" + token + "%";
+                    predicates.add(cb.or(
+                            cb.like(cb.lower(root.get("name")), like),
+                            cb.like(cb.lower(root.get("brand")), like),
+                            cb.like(cb.lower(categoryJoin.get("name")), like),
+                            cb.like(cb.lower(categoryJoin.get("slug")), like),
+                            cb.like(cb.lower(specsJoin.get("socket")), like),
+                            cb.like(cb.lower(specsJoin.get("ramGeneration")), like),
+                            cb.like(cb.lower(specsJoin.get("formFactor")), like)
+                    ));
+                }
             }
 
             if (categorySlug != null && !categorySlug.isBlank()) {
@@ -126,7 +137,28 @@ public class GeneralAppService {
     @Transactional(readOnly = true)
     public List<ProductDto.Suggestion> searchSuggestions(String q) {
         if (q == null || q.isBlank()) return Collections.emptyList();
-        return productRepository.searchSuggest(q.trim(), PageRequest.of(0, 8)).stream()
+        Specification<Product> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.isTrue(root.get("isActive")));
+            jakarta.persistence.criteria.Join<Object, Object> categoryJoin = root.join("category", jakarta.persistence.criteria.JoinType.LEFT);
+            jakarta.persistence.criteria.Join<Object, Object> specsJoin = root.join("specs", jakarta.persistence.criteria.JoinType.LEFT);
+            String[] tokens = q.toLowerCase().trim().split("\\s+");
+            for (String token : tokens) {
+                if (token.isBlank() || "socket".equals(token)) continue;
+                String like = "%" + token + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("name")), like),
+                        cb.like(cb.lower(root.get("brand")), like),
+                        cb.like(cb.lower(categoryJoin.get("name")), like),
+                        cb.like(cb.lower(categoryJoin.get("slug")), like),
+                        cb.like(cb.lower(specsJoin.get("socket")), like),
+                        cb.like(cb.lower(specsJoin.get("ramGeneration")), like),
+                        cb.like(cb.lower(specsJoin.get("formFactor")), like)
+                ));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        return productRepository.findAll(spec, PageRequest.of(0, 8)).getContent().stream()
                 .map(p -> ProductDto.Suggestion.builder()
                         .id(p.getId())
                         .name(p.getName())

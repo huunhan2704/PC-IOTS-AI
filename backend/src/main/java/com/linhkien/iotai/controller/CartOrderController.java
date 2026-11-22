@@ -33,8 +33,10 @@ public class CartOrderController {
     public ResponseEntity<ApiResponse<OrderDto.Response>> createOrder(
             @AuthenticationPrincipal UserPrincipal user,
             @Valid @RequestBody OrderDto.CreateOrderRequest request) {
-        Long userId = user != null ? user.getId() : null;
-        return ResponseEntity.ok(ApiResponse.ok("Đặt hàng thành công", orderService.createOrder(userId, request)));
+        if (user == null) {
+            throw new com.linhkien.iotai.exception.BadRequestException("Vui lòng đăng nhập tài khoản trước khi mua hàng và thanh toán");
+        }
+        return ResponseEntity.ok(ApiResponse.ok("Đặt hàng thành công", orderService.createOrder(user.getId(), request)));
     }
 
     @GetMapping("/orders/my")

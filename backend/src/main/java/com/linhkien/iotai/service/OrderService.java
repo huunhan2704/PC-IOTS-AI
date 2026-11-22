@@ -123,14 +123,18 @@ public class OrderService {
      */
     @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public OrderDto.Response createOrder(Long userId, OrderDto.CreateOrderRequest req) {
+        if (userId == null) {
+            throw new BadRequestException("Vui lòng đăng nhập tài khoản trước khi đặt mua hàng");
+        }
         if (req.getItems() == null || req.getItems().isEmpty()) {
             throw new BadRequestException("Giỏ hàng của bạn đang trống");
         }
-
-        User user = null;
-        if (userId != null) {
-            user = userRepository.findById(userId).orElse(null);
+        if (req.getPhone() == null || !req.getPhone().trim().matches("^0\\d{9}$")) {
+            throw new BadRequestException("Số điện thoại nhận hàng phải gồm đúng 10 chữ số và bắt đầu bằng số 0");
         }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException("Tài khoản không tồn tại, vui lòng đăng nhập lại"));
 
         // 1. Sort product IDs to prevent database deadlocks
         List<Long> productIds = req.getItems().stream()
@@ -230,57 +234,7 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // 5.5 Tự động cấp & kích hoạt sẵn 1 ESP32 Node IoT nếu đơn hàng là 1 bộ PC (có CPU + Mainboard + RAM + PSU, hoặc >= 5 nhóm linh kiện PC)
-        if (user != null) {
-            Product boughtCpu = null, boughtMb = null, boughtRam = null, boughtGpu = null, boughtPsu = null, boughtCooler = null;
-            Set<String> catSlugs = new HashSet<>();
-            for (OrderItem oi : orderItems) {
-                Product prod = oi.getProduct();
-                if (prod != null && prod.getCategory() != null && prod.getCategory().getSlug() != null) {
-                    String slug = prod.getCategory().getSlug().toLowerCase();
-                    catSlugs.add(slug);
-                    switch (slug) {
-                        case "cpu" -> boughtCpu = prod;
-                        case "mainboard" -> boughtMb = prod;
-                        case "ram" -> boughtRam = prod;
-                        case "vga" -> boughtGpu = prod;
-                        case "psu" -> boughtPsu = prod;
-                        case "cooler" -> boughtCooler = prod;
-                    }
-                }
-            }
-            boolean isFullPcSet = (boughtCpu != null && boughtMb != null && boughtRam != null && boughtPsu != null) || catSlugs.size() >= 5;
-            if (isFullPcSet) {
-                String randomSuffix = String.valueOf(ThreadLocalRandom.current().nextInt(1000, 9999));
-                String deviceCode = "PC-" + user.getUsername().toUpperCase().replaceAll("[^A-Z0-9]", "") + "-" + randomSuffix;
-                while (iotDeviceRepository.findByDeviceCode(deviceCode).isPresent()) {
-                    deviceCode = "PC-" + user.getUsername().toUpperCase().replaceAll("[^A-Z0-9]", "") + "-" + ThreadLocalRandom.current().nextInt(1000, 9999);
-                }
-
-                IotDevice autoDevice = IotDevice.builder()
-                        .user(user)
-                        .deviceCode(deviceCode)
-                        .deviceName("Bộ PC Lắp Ráp Kèm ESP32 (" + savedOrder.getOrderCode() + ")")
-                        .status(DeviceStatus.OFFLINE)
-                        .esp32Ip("192.168.1." + ThreadLocalRandom.current().nextInt(100, 250))
-                        .roomLocation(req.getCity() != null ? req.getCity() : "Nhà khách hàng")
-                        .currentScenario("IDLE")
-                        .currentCpu(boughtCpu)
-                        .currentMainboard(boughtMb)
-                        .currentRam(boughtRam)
-                        .currentGpu(boughtGpu)
-                        .currentPsu(boughtPsu)
-                        .currentCooler(boughtCooler)
-                        .build();
-
-                iotDeviceRepository.save(autoDevice);
-
-                String extraNote = "[TẶNG KÈM ESP32 ĐÃ KÍCH HOẠT] Mã Node IoT: " + deviceCode + " (Đã gắn sẵn vào tài khoản " + user.getUsername() + ")";
-                savedOrder.setNote((savedOrder.getNote() != null && !savedOrder.getNote().isBlank()) ? savedOrder.getNote() + " | " + extraNote : extraNote);
-                savedOrder = orderRepository.save(savedOrder);
-                log.info("Auto-provisioned ESP32 IoT device {} for user {} on PC order {}", deviceCode, user.getUsername(), savedOrder.getOrderCode());
-            }
-        }
+        // Lưu ý: Khâu cấp thiết bị IoT ESP32 chỉ được thực hiện SAU KHI đơn hàng được Admin Xác Nhận (chuyển sang DA_XAC_NHAN).
 
         // 6. Publish RabbitMQ event if enabled
         if (rabbitmqEnabled && rabbitTemplate.isPresent()) {
@@ -388,7 +342,73 @@ public class OrderService {
         }
 
         order.setOrderStatus(newStatus);
+
+        // Chỉ khi đơn hàng được XÁC NHẬN (CHO_XAC_NHAN -> DA_XAC_NHAN) mới chuyển qua khâu cấp thiết bị IoT
+        if (newStatus == OrderStatus.DA_XAC_NHAN) {
+            provisionIotDeviceOnConfirm(order);
+        }
+
         return toOrderResponse(orderRepository.save(order));
+    }
+
+    private void provisionIotDeviceOnConfirm(Order order) {
+        User user = order.getUser();
+        if (user == null || order.getItems() == null || order.getItems().isEmpty()) {
+            return;
+        }
+        // Tránh cấp trùng nếu đơn đã được cấp mã Node IoT
+        if (order.getNote() != null && order.getNote().contains("Mã Node IoT:")) {
+            return;
+        }
+
+        Product boughtCpu = null, boughtMb = null, boughtRam = null, boughtGpu = null, boughtPsu = null, boughtCooler = null;
+        Set<String> catSlugs = new HashSet<>();
+        for (OrderItem oi : order.getItems()) {
+            Product prod = oi.getProduct();
+            if (prod != null && prod.getCategory() != null && prod.getCategory().getSlug() != null) {
+                String slug = prod.getCategory().getSlug().toLowerCase();
+                catSlugs.add(slug);
+                switch (slug) {
+                    case "cpu" -> boughtCpu = prod;
+                    case "mainboard" -> boughtMb = prod;
+                    case "ram" -> boughtRam = prod;
+                    case "vga" -> boughtGpu = prod;
+                    case "psu" -> boughtPsu = prod;
+                    case "cooler" -> boughtCooler = prod;
+                }
+            }
+        }
+
+        boolean isFullPcSet = (boughtCpu != null && boughtMb != null && boughtRam != null && boughtPsu != null) || catSlugs.size() >= 5;
+        if (isFullPcSet) {
+            String randomSuffix = String.valueOf(ThreadLocalRandom.current().nextInt(1000, 9999));
+            String deviceCode = "PC-" + user.getUsername().toUpperCase().replaceAll("[^A-Z0-9]", "") + "-" + randomSuffix;
+            while (iotDeviceRepository.findByDeviceCode(deviceCode).isPresent()) {
+                deviceCode = "PC-" + user.getUsername().toUpperCase().replaceAll("[^A-Z0-9]", "") + "-" + ThreadLocalRandom.current().nextInt(1000, 9999);
+            }
+
+            IotDevice autoDevice = IotDevice.builder()
+                    .user(user)
+                    .deviceCode(deviceCode)
+                    .deviceName("Bộ PC Lắp Ráp Kèm ESP32 (" + order.getOrderCode() + ")")
+                    .status(DeviceStatus.OFFLINE)
+                    .esp32Ip("192.168.1." + ThreadLocalRandom.current().nextInt(100, 250))
+                    .roomLocation(order.getCity() != null ? order.getCity() : "Nhà khách hàng")
+                    .currentScenario("IDLE")
+                    .currentCpu(boughtCpu)
+                    .currentMainboard(boughtMb)
+                    .currentRam(boughtRam)
+                    .currentGpu(boughtGpu)
+                    .currentPsu(boughtPsu)
+                    .currentCooler(boughtCooler)
+                    .build();
+
+            iotDeviceRepository.save(autoDevice);
+
+            String extraNote = "[TẶNG KÈM ESP32 ĐÃ KÍCH HOẠT] Mã Node IoT: " + deviceCode + " (Đã gắn vào tài khoản " + user.getUsername() + " sau khi xác nhận đơn)";
+            order.setNote((order.getNote() != null && !order.getNote().isBlank()) ? order.getNote() + " | " + extraNote : extraNote);
+            log.info("Auto-provisioned ESP32 IoT device {} for user {} upon confirming order {}", deviceCode, user.getUsername(), order.getOrderCode());
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import React from 'react';
+import { useSearchParams, useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Cpu,
@@ -24,8 +24,10 @@ import { Pagination } from '@/components/ui/Pagination';
 
 export const frm_TrangChu: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { slug: routeCategorySlug } = useParams<{ slug?: string }>();
+  const navigate = useNavigate();
 
-  const currentCategory = searchParams.get('category') || undefined;
+  const currentCategory = searchParams.get('category') || routeCategorySlug || undefined;
   const currentKeyword = searchParams.get('keyword') || undefined;
   const currentBrands = searchParams.get('brands') || undefined;
   const currentSocket = searchParams.get('socket') || undefined;
@@ -74,7 +76,26 @@ export const frm_TrangChu: React.FC = () => {
     if (newFilters.inStock) params.set('inStock', 'true');
     if (newFilters.sort && newFilters.sort !== 'newest') params.set('sort', newFilters.sort);
     if (newFilters.page && newFilters.page > 0) params.set('page', String(newFilters.page));
-    setSearchParams(params);
+    if (routeCategorySlug) {
+      navigate({ pathname: '/', search: params.toString() });
+    } else {
+      setSearchParams(params);
+    }
+  };
+
+  const handleSelectCategory = (categorySlug?: string) => {
+    handleFilterChange({
+      category: categorySlug,
+      keyword: undefined,
+      brands: undefined,
+      socket: undefined,
+      ramGeneration: undefined,
+      maxPrice: undefined,
+      inStock: filters.inStock,
+      sort: filters.sort,
+      page: 0,
+      size: 12,
+    });
   };
 
   const getCategoryIcon = (slug: string) => {
@@ -164,7 +185,7 @@ export const frm_TrangChu: React.FC = () => {
           </h2>
           {currentCategory && (
             <button
-              onClick={() => handleFilterChange({ ...filters, category: undefined, page: 0 })}
+              onClick={() => handleSelectCategory(undefined)}
               className="text-xs text-sky-400 hover:underline flex items-center gap-1"
             >
               Xem tất cả danh mục
@@ -178,7 +199,7 @@ export const frm_TrangChu: React.FC = () => {
             return (
               <button
                 key={cat.id}
-                onClick={() => handleFilterChange({ ...filters, category: cat.slug, page: 0 })}
+                onClick={() => handleSelectCategory(isSelected ? undefined : cat.slug)}
                 className={`p-3.5 rounded-2xl border text-center flex flex-col items-center justify-center gap-2 transition group ${
                   isSelected
                     ? 'bg-sky-500/20 border-sky-500 text-sky-300 shadow-lg shadow-sky-500/10'

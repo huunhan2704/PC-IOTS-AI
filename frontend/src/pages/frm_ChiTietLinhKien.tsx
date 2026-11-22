@@ -16,6 +16,7 @@ import {
 import { productService } from '@/services/productService';
 import { builderService } from '@/services/builderService';
 import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
 import { PriceTag } from '@/components/ui/PriceTag';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -25,6 +26,7 @@ export const frm_ChiTietLinhKien: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -87,10 +89,20 @@ export const frm_ChiTietLinhKien: React.FC = () => {
   };
 
   const handleAddToCart = () => {
+    if (!isAuthenticated()) {
+      toast.warning('Vui lòng đăng nhập tài khoản trước khi mua hàng!');
+      navigate('/dang-nhap');
+      return;
+    }
     addItem(product, quantity);
   };
 
   const handleBuyNow = () => {
+    if (!isAuthenticated()) {
+      toast.warning('Vui lòng đăng nhập tài khoản trước khi mua hàng!');
+      navigate('/dang-nhap');
+      return;
+    }
     addItem(product, quantity);
     navigate('/thanh-toan');
   };
@@ -248,17 +260,56 @@ export const frm_ChiTietLinhKien: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-2">
               <select
                 value={checkProductId}
-                onChange={(e) => setCheckProductId(e.target.value ? Number(e.target.value) : '')}
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500"
+                onChange={(e) => {
+                  setCheckProductId(e.target.value ? Number(e.target.value) : '');
+                  setCompatResult(null);
+                }}
+                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500"
               >
-                <option value="">-- Chọn một linh kiện cần ghép nối --</option>
-                {allProductsForCheck
-                  .filter((p) => p.id !== product.id)
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      [{p.brand}] {p.name}
-                    </option>
-                  ))}
+                <option value="">-- Chọn linh kiện theo từng danh mục để kiểm tra ghép nối --</option>
+                {(() => {
+                  const categoryOrder: { slug: string; label: string }[] = [
+                    { slug: 'cpu', label: '💻 1. Vi xử lý (CPU)' },
+                    { slug: 'mainboard', label: '🎛️ 2. Bo mạch chủ (Mainboard)' },
+                    { slug: 'ram', label: '⚡ 3. Bộ nhớ trong (RAM)' },
+                    { slug: 'vga', label: '🎮 4. Card đồ họa (VGA)' },
+                    { slug: 'ssd', label: '💾 5. Ổ cứng lưu trữ (SSD)' },
+                    { slug: 'psu', label: '🔌 6. Nguồn máy tính (PSU)' },
+                    { slug: 'cooler', label: '❄️ 7. Tản nhiệt (Cooler)' },
+                    { slug: 'case', label: '🖥️ 8. Vỏ máy tính (Case)' },
+                  ];
+                  const candidates = allProductsForCheck.filter((p) => p.id !== product.id);
+                  return categoryOrder.map((cat) => {
+                    const groupItems = candidates.filter(
+                      (p) => (p.categorySlug || '').toLowerCase() === cat.slug
+                    );
+                    if (groupItems.length === 0) return null;
+                    const isSameSingleCategory =
+                      (product.categorySlug || '').toLowerCase() === cat.slug &&
+                      cat.slug !== 'ram' &&
+                      cat.slug !== 'ssd';
+                    const groupTitle = isSameSingleCategory
+                      ? `${cat.label} — (Cùng loại với sản phẩm đang xem)`
+                      : cat.label;
+                    return (
+                      <optgroup
+                        key={cat.slug}
+                        label={groupTitle}
+                        className="bg-slate-900 text-sky-400 font-bold"
+                      >
+                        {groupItems.map((p) => (
+                          <option
+                            key={p.id}
+                            value={p.id}
+                            className="bg-slate-950 text-slate-200 font-normal"
+                          >
+                            • [{p.brand}] {p.name} ({new Intl.NumberFormat('vi-VN').format(p.price)}₫)
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  });
+                })()}
               </select>
               <Button size="sm" onClick={handleQuickCheck}>
                 Kiểm Tra

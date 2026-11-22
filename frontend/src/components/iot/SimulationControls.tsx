@@ -6,12 +6,14 @@ interface SimulationControlsProps {
   currentScenario: Scenario;
   onSelectScenario: (scenario: Scenario) => void;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
 export const SimulationControls: React.FC<SimulationControlsProps> = ({
   currentScenario,
   onSelectScenario,
   isLoading = false,
+  disabled = false,
 }) => {
   const scenarios: { id: Scenario; label: string; desc: string; icon: React.ReactNode; color: string }[] = [
     {
@@ -63,9 +65,9 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           return (
             <button
               key={sc.id}
-              disabled={isLoading}
+              disabled={isLoading || disabled}
               onClick={() => onSelectScenario(sc.id)}
-              className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${sc.color} ${
+              className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all disabled:opacity-40 disabled:pointer-events-none ${sc.color} ${
                 isActive
                   ? 'bg-sky-500/15 border-sky-500 text-sky-400 shadow-md shadow-sky-500/10'
                   : 'bg-slate-950/60 border-slate-800/80 text-slate-300'

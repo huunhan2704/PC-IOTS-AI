@@ -85,12 +85,38 @@ export const frm_DashboardIoT: React.FC = () => {
     }
   }, [devices, selectedDeviceCode]);
 
-  // Reset gauges and charts to empty/0 when switching devices (only populate from live WebSocket stream)
+  const currentDevice = devices.find((d) => d.deviceCode === selectedDeviceCode);
+  const isDeviceOnline = currentDevice?.status === 'ONLINE' || currentDevice?.status === 'WARNING';
+
+  // Reset gauges and charts to empty/0 when switching devices; if device is ONLINE, restore recent chart history
   useEffect(() => {
     setLatestTelemetry(emptyTelemetry(selectedDeviceCode || ''));
     setTelemetryHistory([]);
     setActiveAlert(null);
-  }, [selectedDeviceCode]);
+
+    if (selectedDeviceCode && isDeviceOnline) {
+      iotService
+        .getTelemetryHistory(selectedDeviceCode, 1)
+        .then((logs) => {
+          if (logs && logs.length > 0) {
+            const recent = logs.slice(-40);
+            setLatestTelemetry(recent[recent.length - 1]);
+            setTelemetryHistory(
+              recent.map((t) => ({
+                time: t.recordedAt ? t.recordedAt.substring(11, 19) : '',
+                cpuLoad: t.cpuLoad,
+                ramUsage: t.ramUsage,
+                gpuLoad: t.gpuLoad,
+                cpuTemp: t.cpuTemp,
+                gpuTemp: t.gpuTemp,
+                ambientTemp: t.ambientTemp,
+              }))
+            );
+          }
+        })
+        .catch(() => {});
+    }
+  }, [selectedDeviceCode, isDeviceOnline]);
 
   // STOMP WebSocket Live Telemetry Subscription
   const { connected } = useStompTopic<TelemetryDto>(
@@ -134,9 +160,11 @@ export const frm_DashboardIoT: React.FC = () => {
     toast.error(`CẢNH BÁO IOT [${alert.type}]: ${alert.message}`);
   });
 
-  const currentDevice = devices.find((d) => d.deviceCode === selectedDeviceCode);
-
   const handleScenarioChange = async (scenario: Scenario) => {
+    if (!selectedDeviceCode) {
+      toast.warning('Vui lòng chọn hoặc đăng ký thiết bị IoT trước khi chuyển kịch bản giả lập');
+      return;
+    }
     try {
       await iotService.setScenario(selectedDeviceCode, scenario);
       toast.success(`Đã chuyển kịch bản giả lập sang: ${scenario}`);
@@ -527,6 +555,7 @@ export const frm_DashboardIoT: React.FC = () => {
       <SimulationControls
         currentScenario={currentDevice?.currentScenario || 'IDLE'}
         onSelectScenario={handleScenarioChange}
+        disabled={!selectedDeviceCode}
       />
 
       {/* Modal Add Device */}

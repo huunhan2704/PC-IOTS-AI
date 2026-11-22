@@ -1,8 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, ShoppingCart, Sparkles } from 'lucide-react';
 import { AiRecommendationDto } from '@/types';
 import { PriceTag } from '@/components/ui/PriceTag';
 import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+import { toast } from 'sonner';
 
 interface RecommendationCardProps {
   recommendation: AiRecommendationDto;
@@ -11,15 +14,24 @@ interface RecommendationCardProps {
 
 export const RecommendationCard: React.FC<RecommendationCardProps> = ({
   recommendation,
-  onApply,
 }) => {
+  const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const rec = recommendation.recommendedProduct;
   const cur = recommendation.currentComponent;
 
   const handleAddToCart = () => {
+    if (!isAuthenticated()) {
+      toast.warning('Vui lòng đăng nhập tài khoản trước khi mua hàng!');
+      navigate('/dang-nhap');
+      return;
+    }
+    if (rec.stockQuantity !== undefined && rec.stockQuantity <= 0) {
+      toast.error(`Sản phẩm ${rec.name} hiện đang hết hàng!`);
+      return;
+    }
     addItem(rec, 1);
-    if (onApply) onApply();
   };
 
   return (

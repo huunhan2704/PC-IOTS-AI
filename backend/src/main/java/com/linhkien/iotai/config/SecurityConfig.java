@@ -88,7 +88,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/coupons/apply").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/orders/track/**").permitAll()
                         .requestMatchers("/api/pc-builder/validate", "/api/pc-builder/compatible-products", "/api/pc-builder/quick-check", "/api/pc-builder/ai-suggest").permitAll()
-                        .requestMatchers("/api/ai/**", "/api/iot/**").permitAll()
+                        .requestMatchers("/api/iot/**").permitAll()
+                        .requestMatchers("/api/ai/**").authenticated()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
 

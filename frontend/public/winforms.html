@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thiết Kế 9 Form (WinForm Wireframe Mockup) - Hình 2.15 đến Hình 2.23</title>
+  <style>
+    * { box-sizing: border-box; font-family: "Segoe UI", Tahoma, Arial, sans-serif; }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #e2e8f0;
+      color: #111;
+    }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    }
+    .toolbar b { margin-right: 8px; font-size: 13px; color: #38bdf8; }
+    .toolbar button {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      padding: 6px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .toolbar button.active, .toolbar button:hover {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+
+    .form-wrapper {
+      max-width: 1060px;
+      margin: 0 auto 38px auto;
+    }
+    .fig-caption {
+      text-align: center;
+      font-family: "Times New Roman", serif;
+      font-size: 15px;
+      font-weight: bold;
+      margin-top: 10px;
+      color: #000;
+    }
+
+    /* Classic WinForm Window Frame */
+    .winform {
+      background: #f0f0f0;
+      border: 2px solid #222;
+      box-shadow: 4px 4px 0 #888;
+    }
+    .win-titlebar {
+      background: linear-gradient(90deg, #1e3a8a, #2563eb);
+      color: #fff;
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: bold;
+      border-bottom: 2px solid #222;
+    }
+    .win-controls span {
+      display: inline-block;
+      width: 22px;
+      height: 20px;
+      line-height: 18px;
+      text-align: center;
+      background: #e5e7eb;
+      color: #111;
+      border: 1px solid #111;
+      font-size: 11px;
+      margin-left: 2px;
+      font-weight: bold;
+    }
+    .win-controls span.close { background: #dc2626; color: #fff; }
+    .win-body {
+      padding: 14px;
+      background: #f8fafc;
+    }
+
+    /* Wireframe Controls */
+    .wf-group {
+      border: 1.5px solid #333;
+      background: #fff;
+      padding: 12px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .wf-group-title {
+      font-size: 12px;
+      font-weight: bold;
+      background: #e2e8f0;
+      border-bottom: 1px solid #333;
+      margin: -12px -12px 10px -12px;
+      padding: 5px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ctrl-tag {
+      display: inline-block;
+      font-family: Consolas, monospace;
+      font-size: 11px;
+      font-weight: bold;
+      background: #fef08a;
+      color: #000;
+      border: 1px dashed #000;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    .wf-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .wf-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .wf-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .wf-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .wf-input {
+      border: 1.5px inset #555;
+      background: #fff;
+      padding: 6px 10px;
+      font-size: 12px;
+      min-width: 180px;
+    }
+    .wf-select {
+      border: 1.5px solid #444;
+      background: #fff;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .wf-btn {
+      border: 1.5px outset #333;
+      background: #e2e8f0;
+      color: #000;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .wf-btn-primary {
+      background: #dbeafe;
+      border: 1.5px solid #1d4ed8;
+      color: #1e3a8a;
+    }
+    .wf-badge {
+      border: 1px solid #111;
+      background: #e2e8f0;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    table.wf-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      background: #fff;
+    }
+    table.wf-table th, table.wf-table td {
+      border: 1px solid #333;
+      padding: 6px 8px;
+      text-align: left;
+    }
+    table.wf-table th {
+      background: #e2e8f0;
+      font-weight: bold;
+    }
+    .wf-box-placeholder {
+      border: 1.5px dashed #555;
+      background: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      text-align: center;
+      font-size: 12px;
+    }
+    .gauge-circle {
+      width: 78px;
+      height: 78px;
+      border-radius: 50%;
+      border: 6px solid #333;
+      border-bottom-color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 13px;
+      margin: 6px auto;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <b>CHỌN FORM ĐỂ CHỤP (Win + Shift + S):</b>
+    <button class="active" onclick="filterForm('all', this)">Hiện tất cả (9 Form)</button>
+    <button onclick="filterForm('f215', this)">Hình 2.15 (frm_TrangChu)</button>
+    <button onclick="filterForm('f216', this)">Hình 2.16 (frm_ChiTietLinhKien)</button>
+    <button onclick="filterForm('f217', this)">Hình 2.17 (frm_GioHang)</button>
+    <button onclick="filterForm('f218', this)">Hình 2.18 (frm_ThanhToan)</button>
+    <button onclick="filterForm('f219', this)">Hình 2.19 (frm_DashboardIoT)</button>
+    <button onclick="filterForm('f220', this)">Hình 2.20 (frm_TuVanNangCapAI)</button>
+    <button onclick="filterForm('f221', this)">Hình 2.21 (frm_PCBuilder)</button>
+    <button onclick="filterForm('f222', this)">Hình 2.22 (frm_AdminQuanTri)</button>
+    <button onclick="filterForm('f223', this)">Hình 2.23 (frm_BaoHanhDienTu)</button>
+  </div>
+
+  <!-- ==================== HÌNH 2.15: frm_TrangChu ==================== -->
+  <div class="form-wrapper" id="f215">
+    <div class="winform">
+      <div class="win-titlebar">
+        <span>[Form] frm_TrangChu — Web Bán Linh Kiện Máy Tính tích hợp IoT & AI (Route: /)</span>
+        <div class="win-controls"><span>_</span><span>□</span><span class="close">X</span></div>
+      </div>
+      <div class="win-body">
+        <!-- Header Navigation -->
+        <div class="wf-group">
+          <div class="wf-group-title">
+            <span>Thanh Điều Hướng & Tìm Kiếm (Header.tsx)</span>
+            <span><span class="ctrl-tag">txt_SearchKeyword</span> <span class="ctrl-tag">nav_WarrantyCenter</span> <span class="ctrl-tag">lbl_CartBadge</span></span>
+          </div>
+          <div class="wf-row" style="justify-content: space-between;">
+            <b>[LOGO] LinhKiện IoT·AI</b>
+            <div class="wf-row">
+              <div class="wf-input" style="width: 280px;">🔍 Tìm CPU, VGA RTX 4070, RAM DDR5... <span class="ctrl-tag">txt_SearchKeyword</span></div>
+              <button class="wf-btn">🔧 PC Builder</button>
+              <button class="wf-btn">📈 IoT Live</button>
+              <button class="wf-btn">✨ Tư Vấn AI</button>
+              <button class="wf-btn wf-btn-primary">🛡️ Bảo Hành (/bao-hanh) <span class="ctrl-tag">nav_WarrantyCenter</span></button>
+              <span class="wf-badge">🛒 Giỏ hàng (2) <span class="ctrl-tag">lbl_CartBadge</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="wf-group">
+          <div class="wf-group-title">
+            <span>Bộ Lọc 8 Danh Mục & Thương Hiệu</span>
+            <span class="ctrl-tag">cbo_CategoryFilter</span>
+          </div>
+          <div class="wf-row">
+            <span>Danh mục:</span>
+            <div class="wf-select">[Tất cả (55)] | CPU | Mainboard | RAM | VGA | SSD | PSU | Cooler | Case ▼ <span class="ctrl-tag">cbo_CategoryFilter</span></div>
+            <div class="wf-select">Hãng: [Tất cả ▼]</div>
+            <div class="wf-select">Sắp xếp: [Mới nhất ▼]</div>
+          </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="wf-group" style="margin-bottom:0;">
+          <div class="wf-group-title">
+            <span>Lưới Danh Sách Sản Phẩm Linh Kiện (55 sản phẩm chuẩn hóa)</span>
+            <span class="ctrl-tag">pnl_ProductGrid</span>
+          </div>
+          <div class="wf-grid-4">
+            <div class="wf-group" style="margin:0;">
+              <div class="wf-box-placeholder" style="height:85px;">[Ảnh Sản Phẩm 1]<br/>Intel Core i5-13400F</div>
+              <p style="margin:6px 0;font-size:12px;"><b>Intel Core i5-13400F</b><br/>Socket LGA1700 • BH 36T<br/>Giá: <b>4.990.000₫</b></p>
+              <button class="wf-btn wf-btn-primary" style="width:100%;">+ Thêm vào giỏ</button>
+            </div>
+            <div class="wf-group" style="margin:0;">
+              <div class="wf-box-placeholder" style="height:85px;">[Ảnh Sản Phẩm 2]<br/>ASUS B760M-A WIFI</div>
+              <p style="margin:6px 0;font-size:12px;"><b>ASUS TUF B760M-PLUS</b><br/>LGA1700 • DDR5 • BH 36T<br/>Giá: <b>4.190.000₫</b></p>
+              <button class="wf-btn wf-btn-primary" style="width:100%;">+ Thêm vào giỏ</button>
+            </div>
+            <div class="wf-group" style="margin:0;">
+              <div class="wf-box-placeholder" style="height:85px;">[Ảnh Sản Phẩm 3]<br/>Kingston Fury 32GB DDR5</div>
+              <p style="margin:6px 0;font-size:12px;"><b>Kingston Fury 32GB DDR5</b><br/>Bus 6000MHz • BH 36T<br/>Giá: <b>2.890.000₫</b></p>
+              <button class="wf-btn wf-btn-primary" style="width:100%;">+ Thêm vào giỏ</button>
+            </div>
+            <div class="wf-group" style="margin:0;">
+              <div class="wf-box-placeholder" style="height:85px;">[Ảnh Sản Phẩm 4]<br/>RTX 4060 Ti 8GB</div>
+              <p style="margin:6px 0;font-size:12px;"><b>MSI RTX 4060 Ti 8GB</b><br/>TDP 160W • BH 36T<br/>Giá: <b>10.490.000₫</b></p>
+              <button class="wf-btn wf-btn-primary" style="width:100%;">+ Thêm vào giỏ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fig-caption">Hình 2.15: Giao diện thiết kế màn hình frm_TrangChu (Trang chủ, Thanh điều hướng & Menu tìm kiếm)</div>
+  </div>
+
+  <!-- ==================== HÌNH 2.16: frm_ChiTietLinhKien ==================== -->
+  <div class="form-wrapper" id="f216">
+    <div class="winform">
+      <div class="win-titlebar">
+        <span>[Form] frm_ChiTietLinhKien — Chi tiết sản phẩm, Bảng thông số tương thích & Đánh giá (/san-pham/:slug)</span>
+        <div class="win-controls"><span>_</span><span>□</span><span class="close">X</span></div>
+      </div>
+      <div class="win-body">
+        <div class="wf-grid-2">
+          <div class="wf-group">
+            <div class="wf-group-title"><span>Thư Viện Hình Ảnh (product_images)</span><span class="ctrl-tag">img_ProductGallery</span></div>
+            <div class="wf-box-placeholder" style="height:150px;">[HÌNH ẢNH CHÍNH CỦA LINH KIỆN]<br/>Intel Core i7-14700K (LGA1700)</div>
+            <div class="wf-row" style="margin-top:8px;">
+              <div class="wf-box-placeholder" style="width:60px;height:42px;padding:4px;">Ảnh 1</div>
+              <div class="wf-box-placeholder" style="width:60px;height:42px;padding:4px;">Ảnh 2</div>
+              <div class="wf-box-placeholder" style="width:60px;height:42px;padding:4px;">Ảnh 3</div>
+            </div>
+          </div>
+          <div class="wf-group">
+            <div class="wf-group-title"><span>Thông Tin Bán Hàng & Bảo Hành</span><span class="ctrl-tag">lbl_WarrantyBadge</span> <span class="ctrl-tag">btn_AddToCart</span></div>
+            <h3 style="margin:4px 0;">CPU Intel Core i7-14700K (20 Nhân 28 Luồng)</h3>
+            <p style="margin:6px 0;">Giá niêm yết: <b style="font-size:16px;">10.490.000₫</b> | Tồn kho: <b>15 sản phẩm</b></p>
+            <p style="margin:8px 0;">Chính sách: <span class="wf-badge">🛡️ Bảo hành chính hãng 36 tháng</span> <span class="ctrl-tag">lbl_WarrantyBadge</span></p>
+            <div class="wf-row" style="margin-top:14px;">
+              <span>Số lượng:</span>
+              <div class="wf-input" style="min-width:60px;width:60px;">[ 1 ]</div>
+              <button class="wf-btn wf-btn-primary">🛒 Thêm Vào Giỏ Hàng <span class="ctrl-tag">btn_AddToCart</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-grid-2">
+          <div class="wf-group" style="margin-bottom:0;">
+            <div class="wf-group-title"><span>Bảng Thông Số Chuẩn Hóa AI (product_specs)</span><span class="ctrl-tag">tbl_SpecsMatrix</span></div>
+            <table class="wf-table">
+              <tr><th>Thông số kỹ thuật</th><th>Giá trị chuẩn hóa</th></tr>
+              <tr><td>Chuẩn Socket CPU</td><td>LGA1700</td></tr>
+              <tr><td>Hỗ trợ chuẩn bộ nhớ RAM</td><td>DDR4 / DDR5 (Max 5600MHz)</td></tr>
+              <tr><td>Xung nhịp cơ bản / Boost</td><td>3.4 GHz / 5.6 GHz</td></tr>
+              <tr><td>Công suất tiêu thụ nhiệt (TDP)</td><td>125W (PL2: 253W)</td></tr>
+            </table>
+          </div>
+          <div class="wf-group" style="margin-bottom:0;">
+            <div class="wf-group-title"><span>Đánh Giá & Nhận Xét Khách Hàng (reviews)</span><span class="ctrl-tag">pnl_ReviewsList</span></div>
+            <div style="font-size:12px;line-height:1.5;">
+              <p style="margin:0 0 6px 0;"><b>★★★★★ Trần Hữu Nhân:</b> CPU chạy mát, ghép với Mainboard Z790 tương thích 100%.</p>
+              <p style="margin:0 0 8px 0;"><b>★★★★★ Khách hàng:</b> Giao hàng nhanh, tra cứu bảo hành điện tử 36 tháng rõ ràng.</p>
+              <div class="wf-row">
+                <div class="wf-input" style="flex:1;">Nhập bình luận đánh giá...</div>
+                <button class="wf-btn">Gửi đánh giá</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fig-caption">Hình 2.16: Giao diện thiết kế màn hình frm_ChiTietLinhKien (Chi tiết linh kiện, Thông số & Đánh giá)</div>
+  </div>
+
+  <!-- ==================== HÌNH 2.17: frm_GioHang ==================== -->
+  <div class="form-wrapper" id="f217">
+    <div class="winform">
+      <div class="win-titlebar">
+        <span>[Form] frm_GioHang — Quản lý giỏ hàng & Áp dụng mã giảm giá (/gio-hang)</span>
+        <div class="win-controls"><span>_</span><span>□</span><span class="close">X</span></div>
+      </div>
+      <div class="win-body">
+        <div class="wf-grid-3">
+          <div class="wf-group" style="grid-column: span 2; margin-bottom:0;">
+            <div class="wf-group-title"><span>Danh Sách Linh Kiện Trong Giỏ Hàng</span><span class="ctrl-tag">tbl_CartItems</span></div>
+            <table class="wf-table">
+              <tr><th>Sản phẩm linh kiện</th><th>Bảo hành</th><th>Đơn giá</th><th>Số lượng</th><th>Thành tiền</th><th>Xóa</th></tr>
+              <tr>
+                <td>Intel Core i5-13400F (LGA1700)</td>
+                <td>36 tháng</td>
+                <td>4.990.000₫</td>
+                <td>[- 1 +]</td>
+                <td><b>4.990.000₫</b></td>
+                <td>[X]</td>
+              </tr>
+              <tr>
+                <td>Kingston Fury Beast 32GB DDR5 6000MHz</td>
+                <td>36 tháng</td>
+                <td>2.890.000₫</td>
+                <td>[- 1 +]</td>
+                <td><b>2.890.000₫</b></td>
+                <td>[X]</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="wf-group" style="margin-bottom:0;">
+            <div class="wf-group-title"><span>Mã Giảm Giá & Tóm Tắt Đơn Hàng</span><span class="ctrl-tag">txt_CouponCode</span></div>
+            <div style="font-size:12px; line-height:1.7;">
+              <div class="wf-row" style="margin-bottom:8px;">
+                <div class="wf-input" style="min-width:110px;flex:1;">IOTAI200K</div>
+                <button class="wf-btn">Áp dụng <span class="ctrl-tag">txt_CouponCode</span></button>
+              </div>
+              <div style="font-size:11px;background:#f1f5f9;padding:6px;border:1px dashed #666;margin-bottom:8px;">
+                • <b>NHAN10:</b> Giảm 10% tối đa 500.000đ<br/>
+                • <b>IOTAI200K:</b> Giảm thẳng 200.000đ đơn từ 3 triệu<br/>
+                • <b>FREESHIP:</b> Miễn phí vận chuyển toàn quốc
+              </div>
+              <div style="display:flex;justify-content:space-between;"><span>Tạm tính:</span><b>7.880.000₫</b></div>
+              <div style="display:flex;justify-content:space-between;"><span>Giảm giá (IOTAI200K): <span class="ctrl-tag">lbl_DiscountAmount</span></span><b>-200.000₫</b></div>
+              <div style="display:flex;justify-content:space-between;border-top:1px solid #333;margin-top:4px;padding-top:4px;font-size:14px;">
+                <b>TỔNG THANH TOÁN:</b><b>7.680.000₫</b>
+              </div>
+              <button class="wf-btn wf-btn-primary" style="width:100%;margin-top:10px;">Tiến Hành Đặt Hàng → <span class="ctrl-tag">btn_ProceedCheckout</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fig-caption">Hình 2.17: Giao diện thiết kế màn hình frm_GioHang (Quản lý giỏ hàng & Áp dụng mã giảm giá)</div>
+  </div>
+
+  <!-- ==================== HÌNH 2.18: frm_ThanhToan ==================== -->
+  <div class="form-wrapper" id="f218">
+    <div class="winform">
+      <div class="win-titlebar">
+        <span>[Form] frm_ThanhToan — Đặt hàng và Thanh toán COD / VietQR (/thanh-toan)</span>
+        <div class="win-controls"><span>_</span><span>□</span><span class="close">X</span></div>
+      </div>
+      <div class="win-body">
+        <div class="wf-grid-2">
+          <div class="wf-group" style="margin-bottom:0;">
+            <div class="wf-group-title"><span>Thông Tin Người Nhận & Địa Chỉ Giao Hàng</span><span class="ctrl-tag">txt_ShippingInfo</span></div>
+            <div style="display:grid;gap:8px;font-size:12px;">
+              <div>Họ tên người nhận (*):<br/><div class="wf-input" style="width:100%;">Trần Hữu Nhân</div></div>
+              <div>Số điện thoại liên hệ (*):<br/><div class="wf-input" style="width:100%;">0912345678</div></div>
+              <div>Địa chỉ nhận hàng & Tỉnh/Thành phố (*):<br/><div class="wf-input" style="width:100%;">236B Lê Văn Sỹ, Quận Tân Bình, TP. Hồ Chí Minh</div></div>
+              <div>Ghi chú đơn hàng:<br/><div class="wf-input" style="width:100%;">Giao giờ hành chính, xuất phiếu bảo hành điện tử</div></div>
+            </div>
+          </div>
+
+          <div class="wf-group" style="margin-bottom:0;">
+            <div class="wf-group-title"><span>Phương Thức Thanh Toán & Giao Dịch ACID</span><span class="ctrl-tag">rdo_PaymentCOD</span> <span class="ctrl-tag">rdo_PaymentVietQR</span></div>
+            <div style="font-size:12px;display:grid;gap:8px;">
+              <div style="border:1px solid #333;padding:8px;">
+                ( ) <b>Thanh toán tiền mặt khi nhận hàng (COD)</b> <span class="ctrl-tag">rdo_PaymentCOD</span>
+              </div>
+              <div style="border:2px solid #1d4ed8;background:#eff6ff;padding:8px;">
+                (•) <b>Chuyển khoản ngân hàng qua mã VietQR Napas 247 (BANK_TRANSFER_QR)</b> <span class="ctrl-tag">rdo_PaymentVietQR</span>
+                <div class="wf-box-placeholder" style="margin-top:6px;height:75px;">[MÃ QR VIETQR EMVCo TỰ ĐỘNG THEO MÃ ĐƠN HÀNG]<br/>MBBank • TK: 0987654321 • TRAN HUU NHAN</div>
+              </div>
+              <button class="wf-btn wf-btn-primary" style="width:100%;padding:9px;">
+                ✔ XÁC NHẬN ĐẶT HÀNG (@Transactional) <span class="ctrl-tag">btn_ConfirmOrder</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fig-caption">Hình 2.18: Giao diện thiết kế màn hình frm_ThanhToan (Đặt hàng và Thanh toán COD / VietQR)</div>
+  </div>
+
+  <!-- ==================== HÌNH 2.19: frm_DashboardIoT ==================== -->
+  <div class="form-wrapper" id="f219">
+    <div class="winform">
+      <div class="win-titlebar">
+        <span>[Form] frm_DashboardIoT — Giám sát PC, Môi trường & Mật độ bụi ESP32 (/iot)</span>
+        <div class="win-controls"><span>_</span><span>□</span><span class="close">X</span></div>
+      </div>
+      <div class="win-body">
+        <!-- AlertBanner -->
+        <div class="wf-group" style="background:#fff7ed;border-color:#c2410c;">
+          <div class="wf-group-title" style="background:#ffedd5;">
+            <span>⚠️ CẢNH BÁO BỤI TRONG CASE: ĐỀ NGHỊ VỆ SINH MÁY (DUST_HIGH >= 100 µg/m³)</span>
+            <span class="ctrl-tag">pnl_AlertBanner</span>
+          </div>
+          <div style="font-size:12px;">
+            Cảm biến bụi ESP32 (ADC GPIO 34) ghi nhận mật độ bụi trong case đạt <b>125.4 µg/m³</b> (&ge; 100 µg/m³). Khuyến nghị khách hàng vệ sinh case, quạt tản nhiệt và lưới lọc bụi!
+          </div>
+        </div>
+
+        <!-- Hardware Gauges -->
+        <div class="wf-group">
+          <div class="wf-group-title"><span>Đồng Hồ Đo Thông Số Phần Cứng PC Realtime (PC Agent / Desktop App)</span><span class="ctrl-tag">gauge_Hardware</span></div>
+          <div class="wf-grid-4">
+            <div style="text-align:center;border:1px solid #ccc;padding:6px;"><b>CPU LOAD</b><div class="gauge-circle">55.1%</div><small>3600 MHz</small></div>
+            <div style="text-align:center;border:1px solid #ccc;padding:6px;"><b>CPU TEMP</b><div class="gauge-circle">62.8°C</div><small>Ổn định</small></div>
+            <div style="text-align:center;border:1px solid #ccc;padding:6px;"><b>RAM USAGE</b><div class="gauge-circle">90.1%</div><small>14.4 / 16 GB</small></div>
+            <div style="text-align:center;border:1px solid #ccc;padding:6px;"><b>FAN SPEED</b><div class="gauge-circle">1560</div><small>RPM</small></div>
+          </div>
+        </div>
+
+        <!-- ESP32 Environment & Dust -->
+        <div class="wf-grid-2">
+          <div class="wf-group" style="margin-bottom:0;">
+            <div class="wf-group-title"><span>Cảm Biến Môi Trường & Mật Độ Bụi ESP32 (4 Cấp Độ)</span><span class="ctrl-tag">card_DustDensity</span></div>
+            <table class="wf-table">
+              <tr><th>Cảm biến ESP32</th><th>Giá trị đo</th><th>Trạng thái đánh giá</th></tr>
+              <tr><td>Nhiệt độ phòng (DHT22 - GPIO 15)</td><td><b>28.5 °C</b></td><td>Bình thường (&lt; 40°C)</td></tr>
+              <tr><td>Độ ẩm không khí (DHT22 - GPIO 15)</td><td><b>62.0 %</b></td><td>Độ ẩm an toàn</td></tr>
+              <tr><td><b>Mật độ bụi trong Case (GPIO 34)</b></td><td><b>125.4 µg/m³</b></td><td><span class="wf-badge">⚠️ Bụi cao - Cần vệ sinh (&ge;100)</span></td></tr>
+            </table>
+          </div>
+          <div class="wf-group" style="margin-bottom:0;">
+            <div class="wf-group-title"><span>Đồ Thị Biến Thiên Thời Gian Thực (WebSocket STOMP)</span><span class="ctrl-tag">chart_LiveStream</span></div>
+            <div class="wf-box-placeholder" style="height:110px;">
+              [ĐỒ THỊ LINE CHART THỜI GIAN THỰC (Stream 2s)]<br/>
+               Đường biểu diễn: CPU Load % | RAM % | CPU Temp °C | Phòng ESP32 °C
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fig-caption">Hình 2.19: Giao diện thiết kế màn hình frm_DashboardIoT (Giám sát PC, Môi trường & Mật độ bụi ESP32)</div>
+  </div>
+
+  <!-- ==================== HÌNH 2.20: frm_TuVanNangCapAI ==================== -->
+  <div class="form-wrapper" id="f220">
+    <div class="winform">
+      <div class="win-titlebar">
+        <span>[Form] frm_TuVanNangCapAI — Chẩn đoán 100 mẫu mới nhất & Gợi ý nâng cấp (/tu-van-ai)</span>
+        <div class="win-controls"><span>_</span><span>□</span><span class="close">X</span></div>
+      </div>
+      <div class="win-body">
+        <div class="wf-group">
+          <div class="wf-group-title"><span>Điều Khiển Phân Tích Chuỗi Thời Gian (100 Mẫu Đo Gần Nhất)</span><span class="ctrl-tag">btn_RunDiagnosis</span></div>
+          <div class="wf-row" style="justify-content:space-between;">
+            <div>Thiết bị: <span class="wf-select">[PC Gaming Trần Hữu Nhân (PC-NHAN-001) ▼]</span> | Mẫu đo đã nạp: <b>100 bản ghi mới nhất</b></div>
+            <button class="wf-btn wf-btn-primary">🔄 Đo Đạc Thật (Chẩn Đoán AI) <span class="ctrl-tag">btn_RunDiagnosis</span></button>
+          </div>
+        </div>
+
+        <div class="wf-group">
+          <div class="wf-group-title"><span>Kết Luận Chẩn Đoán Điểm Nghẽn Hệ Thống (AIDiagnosticService)</span><span class="ctrl-tag">pnl_DiagnosisSummary</span></div>
+          <div style="font-size:12px;">
+            <b>Điểm sức khỏe phần cứng: 80/100 (CẢNH BÁO NGHẼN)</b><br/>
+            • <b>[HIGH] Nghẽn bộ nhớ RAM (RAM_EXHAUSTION - BR11):</b> Tần suất RAM Usage &gt; 88% vượt ngưỡng 30% trong 100 mẫu đo gần nhất. Hệ thống thường xuyên tràn Pagefile gây giật lag.
+          </div>
+        </div>
+
+        <div class="wf-group" style="margin-bottom:0;">
+          <div class="wf-group-title"><span>Đề Xuất Linh Kiện Nâng Cấp Tương Thích 100% Có Sẵn Trong Kho</span><span class="ctrl-tag">tbl_RecommendationList</span> <span class="ctrl-tag">btn_BuyRecommended</span></div>
+          <table class="wf-table">
+            <tr><th>Linh kiện hiện tại</th><th>Linh kiện AI đề xuất nâng cấp</th><th>Hiệu năng kỳ vọng</th><th>Giá bán</th><th>Thao tác</th></tr>
+            <tr>
+              <td>RAM 16GB DDR5 5600MHz</td>
+              <td><b>Kingston Fury Beast 32GB (2x16GB) DDR5 6000MHz</b> (Còn hàng)</td>
+              <td>+35% tốc độ đa nhiệm & chơi game nặng</td>
+              <td><b>2.890.000₫</b></td>
+              <td><button class="wf-btn wf-btn-primary">+ Thêm vào giỏ <span class="ctrl-tag">btn_BuyRecommended</span></button></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="fig-caption">Hình 2.20: Giao diện thiết kế màn hình frm_TuVanNangCapAI (Chẩn đoán 100 mẫu mới nhất & Gợi ý nâng cấp)</div>
+  </div>
+
+  <!-- ==================== HÌNH 2.21: frm_PCBuilder ==================== -->
+  <div class="form-wrapper" id="f221">
+    <div class="winform">
+      <div class="win-titlebar">
+        <span>[Form] frm_PCBuilder — Xây dựng cấu hình & AI Build PC theo Ngân sách (/pc-builder)</span>
+        <div class="win-controls"><span>_</span><span>□</span><span class="close">X</span></div>
+      </div>
+      <div class="win-body">
+        <div class="wf-group">
+          <div class="wf-group-title">
+            <span>Build PC Thông Minh Bằng AI Theo Ngân Sách (Nhập Số Tiền Lẻ Bất Kỳ - step="any")</span>
+            <span><span class="ctrl-tag">num_MaxBudget</span> <span class="ctrl-tag">cbo_UsageNeed</span> <span class="ctrl-tag">btn_AiAutoBuild</span></span>
+          </div>
+          <div class="wf-row">
+            <div>Ngân sách tối đa (VNĐ): <span class="wf-input">16666650</span> <span class="ctrl-tag">num_MaxBudget</span></div>
+            <div>Nhu cầu: <span class="wf-select">[Chơi Game (Gaming & Esport) ▼]</span> <span class="ctrl-tag">cbo_UsageNeed</span></div>
+            <button class="wf-btn wf-btn-primary">✨ AI Bóc Cấu Hình Tối Ưu <span class="ctrl-tag">btn_AiAutoBuild</span></button>
+          </div>
+        </div>
+
+        <div class="wf-grid-3">
+          <div class="wf-group" style="grid-column: span 2; margin-bottom:0;">
+            <div class="wf-group-title"><span>Danh Sách 8 Thành Phần Linh Kiện Phối Ghép Tương Thích</span></div>
+            <table class="wf-table">
+              <tr><th>Hạng mục</th><th>Linh kiện đã chọn</th><th>Thông số tương thích</th><th>Đơn giá</th></tr>
+              <tr><td>1. Vi xử lý (CPU)</td><td>Intel Core i5-13400F</td><td>Socket LGA1700 • TDP 65W</td><td>4.990.000₫</td></tr>
+              <tr><td>2. Bo mạch chủ</td><td>ASUS TUF Gaming B760M-PLUS</td><td>Socket LGA1700 • Chuẩn DDR5</td><td>4.190.000₫</td></tr>
+              <tr><td>3. Bộ nhớ RAM</td><td>Kingston Fury 32GB DDR5 6000MHz</td><td>Chuẩn DDR5 (Khớp Mainboard)</td><td>2.890.000₫</td></tr>
+              <tr><td>4. Bộ nguồn (PSU)</td><td>Cooler Master MWE 650W 80+ Bronze</td><td>Công suất 650W (&ge; 125% TDP)</td><td>1.490.000₫</td></tr>
+            </table>
+          </div>
+          <div class="wf-group" style="margin-bottom:0;">
+            <div class="wf-group-title"><span>Kiểm Tra Nguồn & Tổng Kết</span><span class="ctrl-tag">lbl_TotalTdpPsu</span></div>
+            <div style="font-size:12px;line-height:1.7;">
+              <div>Tổng công suất TDP: <b>310 Watt</b></div>
+              <div>Nguồn khuyến nghị: <b>&ge; 450W</b> (Đã chọn 650W)</div>
+              <div style="margin:6px 0;padding:6px;background:#dcfce7;border:1px solid #166534;">
+                <b>✔ TƯƠNG THÍCH 100% (BR13–BR15)</b> <span class="ctrl-tag">lbl_TotalTdpPsu</span>
+              </div>
+              <div>Tổng chi phí: <b style="font-size:15px;">13.560.000₫</b></div>
+              <button class="wf-btn wf-btn-primary" style="width:100%;margin-top:8px;">🛒 Thêm Tất Cả Vào Giỏ <span class="ctrl-tag">btn_SaveBuild</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fig-caption">Hình 2.21: Giao diện thiết kế màn hình frm_PCBuilder (Xây dựng cấu hình & AI Build PC theo Ngân sách)</div>
+  </div>
+
+  <!-- ==================== HÌNH 2.22: frm_AdminQuanTri ==================== -->
+  <div class="form-wrapper" id="f222">
+    <div class="winform">
+      <div class="win-titlebar">
+        <span>[Form] frm_AdminQuanTri — Quản trị sản phẩm, Modal Chi tiết đơn & Hóa đơn PDF (/admin)</span>
+        <div class="win-controls"><span>_</span><span>□</span><span class="close">X</span></div>
+      </div>
+      <div class="win-body">
+        <div class="wf-group">
+          <div class="wf-group-title"><span>Thanh Điều Hướng Phân Hệ Quản Trị (Admin Tabs)</span><span class="ctrl-tag">nav_AdminTabs</span></div>
+          <div class="wf-row">
+            <button class="wf-btn">📊 Dashboard Tổng Quan</button>
+            <button class="wf-btn">📦 Quản Lý Kho & Sản Phẩm</button>
+            <button class="wf-btn wf-btn-primary">🛒 Quản Lý Đơn Hàng</button>
+            <button class="wf-btn">📡 Thiết Bị IoT (3)</button>
+            <button class="wf-btn">🛡️ Phân Quyền Người Dùng</button>
+            <button class="wf-btn">📈 Báo Cáo Doanh Thu</button>
+          </div>
+        </div>
+
+        <div class="wf-grid-2">
+          <div class="wf-group" style="margin-bottom:0;">
+            <div class="wf-group-title"><span>Bảng Quản Lý Đơn Hàng</span><span class="ctrl-tag">btn_OrderDetail</span> <span class="ctrl-tag">btn_ApproveOrCancel</span></div>
+            <table class="wf-table">
+              <tr><th>Mã đơn</th><th>Khách hàng</th><th>Tổng tiền</th><th>Trạng thái</th><th>Thao tác</th></tr>
+              <tr>
+                <td><u><b>LK261015A01</b></u></td>
+                <td>Trần Hữu Nhân<br/><small>0912345678</small></td>
+                <td>12.370.000₫</td>
+                <td>DA_GIAO</td>
+                <td><button class="wf-btn wf-btn-primary">👁 Chi tiết <span class="ctrl-tag">btn_OrderDetail</span></button></td>
+              </tr>
+              <tr>
+                <td><u><b>LK2611217ZJ</b></u></td>
+                <td>Trần Văn Nhân<br/><small>0123556677</small></td>
+                <td>18.840.000₫</td>
+                <td>CHO_XAC_NHAN</td>
+                <td><button class="wf-btn">👁 Chi tiết</button> <button class="wf-btn">Duyệt / Hủy <span class="ctrl-tag">btn_ApproveOrCancel</span></button></td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="wf-group" style="margin-bottom:0;border:2px solid #1d4ed8;">
+            <div class="wf-group-title" style="background:#dbeafe;">
+              <span>[Modal] Chi Tiết Đơn Hàng #LK261015A01 (Khách hàng & Bảo hành)</span>
+              <span class="ctrl-tag">mdl_OrderDetail</span>
+            </div>
+            <div style="font-size:12px;line-height:1.55;">
+              <div><b>Khách hàng:</b> Trần Hữu Nhân (0912345678) • Đ/c: 236 Lê Văn Sỹ, TP.HCM</div>
+              <div><b>Thanh toán:</b> BANK_TRANSFER_QR (PAID) • Mã giảm giá: <b>IOTAI200K</b></div>
+              <table class="wf-table" style="margin:6px 0;">
+                <tr><th>Linh kiện</th><th>SL</th><th>Bảo hành & Hết hạn</th><th>Thành tiền</th></tr>
+                <tr><td>Intel Core i5-13400F</td><td>1</td><td><span class="wf-badge">Còn BH • đến 15/10/2029 (36T)</span></td><td>4.990.000₫</td></tr>
+                <tr><td>ASUS B760M-PLUS</td><td>1</td><td><span class="wf-badge">Còn BH • đến 15/10/2029 (36T)</span></td><td>7.380.000₫</td></tr>
+              </table>
+              <div style="text-align:right;">
+                <button class="wf-btn">Đóng</button>
+                <button class="wf-btn wf-btn-primary">🖨️ Xem & In Hóa Đơn (PDF) <span class="ctrl-tag">btn_PrintInvoicePdf</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fig-caption">Hình 2.22: Giao diện thiết kế màn hình frm_AdminQuanTri (Quản trị sản phẩm, Modal Chi tiết đơn & Hóa đơn PDF)</div>
+  </div>
+
+  <!-- ==================== HÌNH 2.23: frm_BaoHanhDienTu ==================== -->
+  <div class="form-wrapper" id="f223">
+    <div class="winform">
+      <div class="win-titlebar">
+        <span>[Form] frm_BaoHanhDienTu — Trung tâm Bảo hành Điện tử & Tra cứu Bảo hành (/bao-hanh)</span>
+        <div class="win-controls"><span>_</span><span>□</span><span class="close">X</span></div>
+      </div>
+      <div class="win-body">
+        <div class="wf-group">
+          <div class="wf-group-title">
+            <span>Tra Cứu Phiếu Bảo Hành Điện Tử Theo Mã Đơn Hàng</span>
+            <span><span class="ctrl-tag">txt_OrderCodeLookup</span> <span class="ctrl-tag">lst_MyOrdersQuickPick</span></span>
+          </div>
+          <div class="wf-row" style="margin-bottom:8px;">
+            <span>Mã đơn hàng:</span>
+            <div class="wf-input" style="flex:1;">LK261015A01</div>
+            <button class="wf-btn wf-btn-primary">🔍 Tra Cứu Bảo Hành <span class="ctrl-tag">txt_OrderCodeLookup</span></button>
+          </div>
+          <div class="wf-row" style="font-size:12px;">
+            <span>Đơn hàng của bạn (Chọn nhanh): <span class="ctrl-tag">lst_MyOrdersQuickPick</span></span>
+            <span class="wf-badge" style="background:#dcfce7;">#LK261015A01</span>
+            <span class="wf-badge">#LK261016B02</span>
+            <span class="wf-badge">#LK261116SEBELB</span>
+          </div>
+        </div>
+
+        <div class="wf-group" style="margin-bottom:0;">
+          <div class="wf-group-title">
+            <span>Phiếu Bảo Hành Điện Tử — Đơn Hàng #LK261015A01 (Khách hàng: Trần Hữu Nhân - Ngày mua: 15/10/2026)</span>
+            <span><span class="ctrl-tag">tbl_WarrantyItems</span> <span class="ctrl-tag">lbl_WarrantyStatus</span></span>
+          </div>
+          <table class="wf-table">
+            <tr><th>Linh kiện / Sản phẩm</th><th>SL</th><th>Thời hạn BH</th><th>Ngày hết hạn</th><th>Trạng thái bảo hành</th></tr>
+            <tr>
+              <td><b>CPU Intel Core i5-13400F (LGA1700)</b></td>
+              <td>1</td>
+              <td>36 tháng</td>
+              <td>15/10/2029</td>
+              <td><span class="wf-badge" style="background:#dcfce7;">✔ Còn bảo hành</span> <span class="ctrl-tag">lbl_WarrantyStatus</span></td>
+            </tr>
+            <tr>
+              <td><b>Mainboard ASUS TUF Gaming B760M-PLUS WIFI</b></td>
+              <td>1</td>
+              <td>36 tháng</td>
+              <td>15/10/2029</td>
+              <td><span class="wf-badge" style="background:#dcfce7;">✔ Còn bảo hành</span></td>
+            </tr>
+            <tr>
+              <td><b>SSD Kingston NV2 1TB PCIe 4.0 NVMe</b></td>
+              <td>1</td>
+              <td>36 tháng</td>
+              <td>15/10/2029</td>
+              <td><span class="wf-badge" style="background:#dcfce7;">✔ Còn bảo hành</span></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="fig-caption">Hình 2.23: Giao diện thiết kế màn hình frm_BaoHanhDienTu (Trung tâm Bảo hành Điện tử – /bao-hanh)</div>
+  </div>
+
+  <script>
+    function filterForm(id, btn) {
+      document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.form-wrapper').forEach(w => {
+        w.style.display = (id === 'all' || w.id === id) ? 'block' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>

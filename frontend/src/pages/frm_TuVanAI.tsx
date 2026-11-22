@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Sparkles,
   RefreshCw,
   ShoppingCart,
   AlertCircle,
-  ArrowRight,
   ShieldCheck,
   CheckCircle2,
-  Cpu,
+  Wifi,
+  WifiOff,
+  Activity,
 } from 'lucide-react';
 import { aiService } from '@/services/aiService';
 import { iotService } from '@/services/iotService';
 import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
 import { HealthScoreGauge } from '@/components/ai/HealthScoreGauge';
 import { DiagnosisCard } from '@/components/ai/DiagnosisCard';
 import { RecommendationCard } from '@/components/ai/RecommendationCard';
@@ -20,13 +23,16 @@ import { Button } from '@/components/ui/Button';
 import { toast } from 'sonner';
 
 export const frm_TuVanAI: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedDeviceCode, setSelectedDeviceCode] = useState<string>('');
   const addItem = useCartStore((s) => s.addItem);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  const { data: devices = [] } = useQuery({
+  const { data: devices = [], isLoading: isDevicesLoading } = useQuery({
     queryKey: ['my-devices'],
     queryFn: iotService.getMyDevices,
+    refetchInterval: 5000,
   });
 
   React.useEffect(() => {
@@ -39,6 +45,9 @@ export const frm_TuVanAI: React.FC = () => {
     }
   }, [devices, selectedDeviceCode]);
 
+  const currentDevice = devices.find((d) => d.deviceCode === selectedDeviceCode);
+  const isDeviceOnline = currentDevice?.status === 'ONLINE' || currentDevice?.status === 'WARNING';
+
   const { data: report, isLoading, isRefetching } = useQuery({
     queryKey: ['ai-diagnostics', selectedDeviceCode],
     queryFn: () => aiService.getDiagnostics(selectedDeviceCode),
@@ -49,10 +58,10 @@ export const frm_TuVanAI: React.FC = () => {
     mutationFn: () => aiService.runDiagnostics(selectedDeviceCode),
     onSuccess: (data) => {
       queryClient.setQueryData(['ai-diagnostics', selectedDeviceCode], data);
-      toast.success('Đã hoàn tất phân tích chuỗi log telemetry 30 ngày!');
+      toast.success('Đã hoàn tất đo đạc thật & phân tích chuỗi log telemetry từ PC đang kết nối!');
     },
-    onError: () => {
-      toast.error('Không thể thực hiện chẩn đoán AI lúc này');
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Thiết bị chưa kết nối ONLINE, không thể đo đạc thật lúc này');
     },
   });
 
@@ -67,18 +76,55 @@ export const frm_TuVanAI: React.FC = () => {
     },
   });
 
+  const handleRealDiagnosticClick = () => {
+    if (!isAuthenticated()) {
+      toast.warning('Vui lòng đăng nhập tài khoản trước khi sử dụng Chuẩn Đoán AI!');
+      navigate('/dang-nhap');
+      return;
+    }
+    if (!selectedDeviceCode || !currentDevice) {
+      toast.warning('Chưa có thiết bị PC/IoT nào được chọn để chuẩn đoán!');
+      return;
+    }
+    if (!isDeviceOnline) {
+      toast.error(
+        `Thiết bị ${selectedDeviceCode} đang OFFLINE! Vui lòng mở ứng dụng Desktop Agent và kết nối đúng mã ${selectedDeviceCode} lên trạng thái ONLINE trước khi Đo Đạc Thật.`
+      );
+      return;
+    }
+    runMutation.mutate();
+  };
+
   const handleAddAllToCart = () => {
+    if (!isAuthenticated()) {
+      toast.warning('Vui lòng đăng nhập tài khoản trước khi mua hàng!');
+      navigate('/dang-nhap');
+      return;
+    }
     if (!report?.recommendations || report.recommendations.length === 0) {
       toast.info('Hiện không có linh kiện nào được đề xuất');
       return;
     }
 
-    report.recommendations.forEach((rec) => {
+    const availableRecs = report.recommendations.filter(
+      (rec) => (rec.recommendedProduct?.stockQuantity ?? 0) > 0
+    );
+    if (availableRecs.length === 0) {
+      toast.error('Các linh kiện đề xuất hiện đã hết hàng trong kho!');
+      return;
+    }
+
+    availableRecs.forEach((rec) => {
       addItem(rec.recommendedProduct, 1);
-      aiService.markApplied(rec.id).catch(() => {});
     });
 
-    toast.success(`Đã thêm tất cả ${report.recommendations.length} linh kiện đề xuất vào giỏ hàng!`);
+    if (availableRecs.length < report.recommendations.length) {
+      toast.warning(
+        `Đã thêm ${availableRecs.length}/${report.recommendations.length} linh kiện còn hàng vào giỏ (một số mã đã hết hàng).`
+      );
+    } else {
+      toast.success(`Đã thêm tất cả ${availableRecs.length} linh kiện đề xuất vào giỏ hàng!`);
+    }
   };
 
   return (
@@ -118,12 +164,17 @@ export const frm_TuVanAI: React.FC = () => {
               defaultValue=""
               onChange={(e) => {
                 if (e.target.value) {
+                  if (!selectedDeviceCode) {
+                    toast.warning('Vui lòng chọn hoặc thêm thiết bị trước khi chạy mô phỏng AI');
+                    e.target.value = '';
+                    return;
+                  }
                   simulateMutation.mutate(e.target.value);
                   e.target.value = '';
                 }
               }}
-              disabled={simulateMutation.isPending}
-              className="bg-slate-900/90 text-indigo-200 border border-indigo-500/40 rounded-lg px-2 py-1 text-xs font-bold focus:outline-none cursor-pointer hover:border-indigo-400 transition"
+              disabled={!selectedDeviceCode || simulateMutation.isPending}
+              className="bg-slate-900/90 text-indigo-200 border border-indigo-500/40 rounded-lg px-2 py-1 text-xs font-bold focus:outline-none cursor-pointer hover:border-indigo-400 transition disabled:opacity-40"
             >
               <option value="" disabled>-- Chọn kịch bản nghẽn --</option>
               <option value="RAM">💥 Mô phỏng Tràn RAM (&gt;90%)</option>
@@ -137,14 +188,81 @@ export const frm_TuVanAI: React.FC = () => {
 
           <Button
             size="sm"
-            onClick={() => runMutation.mutate()}
+            onClick={handleRealDiagnosticClick}
+            disabled={!selectedDeviceCode || !isDeviceOnline}
+            title={
+              !selectedDeviceCode
+                ? 'Chưa có thiết bị IoT/PC'
+                : !isDeviceOnline
+                ? `Thiết bị ${selectedDeviceCode} đang OFFLINE - Cần mở Desktop Agent kết nối PC để Đo Đạc Thật`
+                : 'Phân tích 100 mẫu đo thật gần nhất từ PC đang kết nối'
+            }
             isLoading={runMutation.isPending || isRefetching || simulateMutation.isPending}
           >
             <RefreshCw className="w-3.5 h-3.5 mr-1" />
-            Đo Đạc Thật
+            Đo Đạc Thật {isDeviceOnline ? '(ONLINE)' : '(Cần Kết Nối PC)'}
           </Button>
         </div>
       </div>
+
+      {/* PC Connection Status Banner for AI Diagnosis */}
+      {devices.length === 0 && !isDevicesLoading ? (
+        <div className="p-8 rounded-3xl bg-slate-900/70 border border-slate-800 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto">
+            <Activity className="w-6 h-6" />
+          </div>
+          <div className="space-y-1 max-w-lg mx-auto">
+            <h3 className="text-base font-bold text-slate-100">
+              Tài khoản chưa có Node Thiết Bị PC / IoT nào
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Để sử dụng tính năng <strong>Chuẩn Đoán AI</strong>, bạn cần đăng ký Node thiết bị tại trang{' '}
+              <strong>IoT Live</strong> (hoặc đặt mua bộ PC và được Admin xác nhận đơn hàng để hệ thống cấp sẵn mã Node), sau đó mở ứng dụng Desktop kết nối PC.
+            </p>
+          </div>
+          <Link
+            to="/iot"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 transition"
+          >
+            <Activity className="w-4 h-4" />
+            Đến trang IoT Live để thêm & kết nối PC
+          </Link>
+        </div>
+      ) : currentDevice && (
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl border text-xs ${
+            isDeviceOnline
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {isDeviceOnline ? (
+              <Wifi className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <WifiOff className="w-4 h-4 text-amber-400 shrink-0" />
+            )}
+            <span>
+              Trạng thái thiết bị <strong>{currentDevice.deviceName} ({currentDevice.deviceCode})</strong>:{' '}
+              {isDeviceOnline ? (
+                <strong className="text-emerald-400">ONLINE — Đã kết nối PC, sẵn sàng bấm "Đo Đạc Thật"</strong>
+              ) : (
+                <strong className="text-amber-300">
+                  OFFLINE — Vui lòng mở ứng dụng Desktop Agent kết nối mã {currentDevice.deviceCode} để bật "Đo Đạc Thật" (hoặc dùng "Test AI" để chạy mô phỏng).
+                </strong>
+              )}
+            </span>
+          </div>
+          {!isDeviceOnline && (
+            <Link
+              to="/iot"
+              className="px-3 py-1 rounded-lg bg-slate-900 border border-slate-700 text-sky-400 hover:text-sky-300 font-bold whitespace-nowrap"
+            >
+              Mở IoT Live / Tải App .EXE
+            </Link>
+          )}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="py-20 text-center text-xs text-slate-400 space-y-3">
