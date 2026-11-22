@@ -227,11 +227,26 @@ export const frm_DashboardIoT: React.FC = () => {
           <span className="flex items-center gap-1.5 font-bold">
             {currentDevice?.status === 'ONLINE' || currentDevice?.status === 'WARNING' ? (
               <span className="inline-flex items-center gap-1.5 text-emerald-400">
-                <Wifi className="w-4 h-4" /> Thiết bị ONLINE (Đang nhận dữ liệu)
+                <Wifi className="w-4 h-4" /> PC Agent: ONLINE (Đang lấy dữ liệu thật từ máy tính)
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 text-rose-400">
-                <WifiOff className="w-4 h-4" /> Thiết bị OFFLINE (Chưa kết nối Desktop đúng mã {selectedDeviceCode || '...'})
+                <WifiOff className="w-4 h-4" /> PC Agent: OFFLINE (Chưa đăng nhập App Desktop cho mã {selectedDeviceCode || '...'})
+              </span>
+            )}
+          </span>
+          <span className="text-slate-600">|</span>
+          <span className="flex items-center gap-1.5 font-bold">
+            {(currentDevice?.status === 'ONLINE' || currentDevice?.status === 'WARNING') &&
+            ((latestTelemetry.ambientTemp ?? 0) > 0 ||
+              (latestTelemetry.ambientHumidity ?? 0) > 0 ||
+              (latestTelemetry.dustDensity ?? 0) > 0) ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400">
+                ● Mạch ESP32: ĐANG HOẠT ĐỘNG
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400">
+                ○ Mạch ESP32: KHÔNG KẾT NỐI (Không có dữ liệu cảm biến ngoài)
               </span>
             )}
           </span>
@@ -242,14 +257,6 @@ export const frm_DashboardIoT: React.FC = () => {
               {currentDevice ? `${currentDevice.deviceName} (${currentDevice.deviceCode})` : 'Chưa có thiết bị'}
             </strong>
           </span>
-          {currentDevice?.esp32Ip && (
-            <>
-              <span className="text-slate-600">|</span>
-              <span className="text-slate-400">
-                ESP32 IP: <strong className="text-sky-400 font-mono">{currentDevice.esp32Ip}</strong>
-              </span>
-            </>
-          )}
         </div>
 
         <div className="text-[11px] text-slate-500 font-mono hidden md:block">
@@ -326,13 +333,17 @@ export const frm_DashboardIoT: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase">
               Nhiệt Độ Phòng (ESP32 DHT22)
             </span>
-            <div className="flex items-baseline gap-1 mt-0.5">
+            <div className="flex flex-wrap items-baseline gap-1 mt-0.5">
               <span className="text-2xl font-black text-slate-100 font-mono">
                 {latestTelemetry.ambientTemp}
               </span>
               <span className="text-xs text-slate-400 font-bold">°C</span>
-              {latestTelemetry.ambientTemp >= 40 && (
+              {latestTelemetry.ambientTemp >= 40 ? (
                 <span className="ml-2 text-[10px] font-bold text-rose-400">⚠️ Quá nóng (BR10)</span>
+              ) : latestTelemetry.ambientTemp > 0 ? (
+                <span className="ml-2 text-[10px] font-semibold text-emerald-400">ESP32 đang đo</span>
+              ) : (
+                <span className="ml-2 text-[10px] font-semibold text-slate-500">Không có ESP32</span>
               )}
             </div>
           </div>
@@ -346,11 +357,16 @@ export const frm_DashboardIoT: React.FC = () => {
             <span className="text-[11px] font-bold text-slate-400 uppercase">
               Độ Ẩm Không Khí Phòng
             </span>
-            <div className="flex items-baseline gap-1 mt-0.5">
+            <div className="flex flex-wrap items-baseline gap-1 mt-0.5">
               <span className="text-2xl font-black text-slate-100 font-mono">
                 {latestTelemetry.ambientHumidity}
               </span>
               <span className="text-xs text-slate-400 font-bold">%</span>
+              {latestTelemetry.ambientHumidity > 0 ? (
+                <span className="ml-2 text-[10px] font-semibold text-emerald-400">ESP32 đang đo</span>
+              ) : (
+                <span className="ml-2 text-[10px] font-semibold text-slate-500">Không có ESP32</span>
+              )}
             </div>
           </div>
         </div>

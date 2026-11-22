@@ -95,19 +95,19 @@ public class IotTelemetryService {
                     dustDensity);
         }
 
-        // Save Telemetry Log to DB
+        // Save Telemetry Log to DB (No fake default values - store actual sensor values or 0)
         TelemetryLog logEntity = TelemetryLog.builder()
                 .device(device)
                 .cpuLoad(telemetry.getCpuLoad() != null ? telemetry.getCpuLoad() : 0.0f)
                 .cpuTemp(cpuTemp)
-                .cpuClockMhz(telemetry.getCpuClockMhz() != null ? telemetry.getCpuClockMhz() : 3600)
+                .cpuClockMhz(telemetry.getCpuClockMhz() != null ? telemetry.getCpuClockMhz() : 0)
                 .ramUsage(telemetry.getRamUsage() != null ? telemetry.getRamUsage() : 0.0f)
                 .ramUsedGb(telemetry.getRamUsedGb() != null ? telemetry.getRamUsedGb() : 0.0f)
-                .ramTotalGb(telemetry.getRamTotalGb() != null ? telemetry.getRamTotalGb() : 16.0f)
+                .ramTotalGb(telemetry.getRamTotalGb() != null ? telemetry.getRamTotalGb() : 0.0f)
                 .gpuLoad(telemetry.getGpuLoad() != null ? telemetry.getGpuLoad() : 0.0f)
                 .gpuTemp(gpuTemp)
-                .fanSpeedRpm(telemetry.getFanSpeedRpm() != null ? telemetry.getFanSpeedRpm() : 1200)
-                .powerDrawW(telemetry.getPowerDrawW() != null ? telemetry.getPowerDrawW() : 150)
+                .fanSpeedRpm(telemetry.getFanSpeedRpm() != null ? telemetry.getFanSpeedRpm() : 0)
+                .powerDrawW(telemetry.getPowerDrawW() != null ? telemetry.getPowerDrawW() : 0)
                 .ambientTemp(ambTemp)
                 .ambientHumidity(telemetry.getAmbientHumidity() != null ? telemetry.getAmbientHumidity() : 0.0f)
                 .dustDensity(dustDensity)

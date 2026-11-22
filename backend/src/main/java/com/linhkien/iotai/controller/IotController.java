@@ -94,6 +94,22 @@ public class IotController {
             throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền gửi dữ liệu cho mã thiết bị " + code);
         }
 
+        // Nếu Desktop App chưa nhận trực tiếp gói MQTT từ ESP32 nhưng Backend đang nhận được tín hiệu ESP32 thật (trong 15s qua), ghép dữ liệu từ ESP32 thật vào
+        boolean hasDesktopEsp = (telemetry.getAmbientTemp() != null && telemetry.getAmbientTemp() > 0)
+                || (telemetry.getAmbientHumidity() != null && telemetry.getAmbientHumidity() > 0)
+                || (telemetry.getDustDensity() != null && telemetry.getDustDensity() > 0);
+        if (!hasDesktopEsp && mqttSubscriberService.isEsp32Connected(code)) {
+            java.util.Map<String, Object> env = mqttSubscriberService.getLatestAmbientData(code);
+            if (env != null) {
+                if (env.get("ambientTemp") instanceof Number n) telemetry.setAmbientTemp(n.floatValue());
+                else if (env.get("temperature") instanceof Number n) telemetry.setAmbientTemp(n.floatValue());
+                if (env.get("ambientHumidity") instanceof Number n) telemetry.setAmbientHumidity(n.floatValue());
+                else if (env.get("humidity") instanceof Number n) telemetry.setAmbientHumidity(n.floatValue());
+                if (env.get("dustDensity") instanceof Number n) telemetry.setDustDensity(n.floatValue());
+                else if (env.get("dust") instanceof Number n) telemetry.setDustDensity(n.floatValue());
+            }
+        }
+
         telemetryService.processTelemetry(code, telemetry);
         return ResponseEntity.ok(ApiResponse.ok("Đã nhận dữ liệu telemetry từ Desktop Agent", null));
     }

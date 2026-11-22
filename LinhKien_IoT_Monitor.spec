@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['desktop_app.py'],
+    ['D:\\PC-IOTS-AI\\desktop_app.py'],
     pathex=[],
     binaries=[],
     datas=[],

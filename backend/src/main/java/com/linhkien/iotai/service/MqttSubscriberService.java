@@ -132,17 +132,17 @@ public class MqttSubscriberService implements MqttCallback {
                     dustDensity = ((Number) env.get("pm25")).floatValue();
                 }
 
-                // Support both camelCase (from python script) and snake_case (standard)
+                // Support both camelCase (from python script) and snake_case (standard) - no fake fallback defaults
                 float cpuLoad = getFloat(telemMap, "cpuLoad", "cpu_load", 0.0f);
-                float cpuTemp = getFloat(telemMap, "cpuTemp", "cpu_temp", 42.0f);
-                int cpuFreq = getInt(telemMap, "cpuFreq", "cpu_clock_mhz", 3600);
-                float ramUsage = getFloat(telemMap, "ramUsage", "ram_usage", 45.0f);
-                float ramUsedGb = getFloat(telemMap, "ramUsedGb", "ram_used_gb", 7.2f);
-                float ramTotalGb = getFloat(telemMap, "ramTotalGb", "ram_total_gb", 16.0f);
-                float gpuLoad = getFloat(telemMap, "gpuLoad", "gpu_load", 5.0f);
-                float gpuTemp = getFloat(telemMap, "gpuTemp", "gpu_temp", 40.0f);
-                int fanRpm = getInt(telemMap, "fanRpm", "fan_speed_rpm", 1100);
-                int powerW = getInt(telemMap, "powerDrawW", "power_draw_w", 120);
+                float cpuTemp = getFloat(telemMap, "cpuTemp", "cpu_temp", 0.0f);
+                int cpuFreq = getInt(telemMap, "cpuFreq", "cpu_clock_mhz", 0);
+                float ramUsage = getFloat(telemMap, "ramUsage", "ram_usage", 0.0f);
+                float ramUsedGb = getFloat(telemMap, "ramUsedGb", "ram_used_gb", 0.0f);
+                float ramTotalGb = getFloat(telemMap, "ramTotalGb", "ram_total_gb", 0.0f);
+                float gpuLoad = getFloat(telemMap, "gpuLoad", "gpu_load", 0.0f);
+                float gpuTemp = getFloat(telemMap, "gpuTemp", "gpu_temp", 0.0f);
+                int fanRpm = getInt(telemMap, "fanRpm", "fan_speed_rpm", 0);
+                int powerW = getInt(telemMap, "powerDrawW", "power_draw_w", 0);
 
                 IotDto.TelemetryResponse telem = IotDto.TelemetryResponse.builder()
                         .deviceCode(deviceId)
@@ -191,7 +191,14 @@ public class MqttSubscriberService implements MqttCallback {
     }
 
     public Map<String, Object> getLatestAmbientData(String deviceId) {
-        return latestEnvData.get(deviceId);
+        Long lastEnvTime = latestEnvTimeMap.get(deviceId);
+        boolean espConnected = lastEnvTime != null && (System.currentTimeMillis() - lastEnvTime <= 15000);
+        return espConnected ? latestEnvData.get(deviceId) : null;
+    }
+
+    public boolean isEsp32Connected(String deviceId) {
+        Long lastEnvTime = latestEnvTimeMap.get(deviceId);
+        return lastEnvTime != null && (System.currentTimeMillis() - lastEnvTime <= 15000);
     }
 
     public void publishControlCommand(String deviceId, String scenario) {
