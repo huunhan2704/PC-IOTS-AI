@@ -41,7 +41,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { PriceTag } from '@/components/ui/PriceTag';
 import { useAuthStore } from '@/store/authStore';
-import { ShieldCheck, UserPlus, Lock, Unlock, FileSpreadsheet, Printer, Calendar, Cpu, Copy, Eye, User, Phone, MapPin, CreditCard, FileText } from 'lucide-react';
+import { ShieldCheck, UserPlus, Lock, Unlock, FileSpreadsheet, Printer, Calendar, Cpu, Copy, Eye, User, Phone, MapPin, CreditCard, FileText, Download, Upload } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
@@ -92,6 +92,8 @@ export const frm_AdminQuanTri: React.FC = () => {
   const [prodPage, setProdPage] = useState(0);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isImportingExcel, setIsImportingExcel] = useState(false);
+  const excelInputRef = React.useRef<HTMLInputElement | null>(null);
   const [editingProduct, setEditingProduct] = useState<ProductDto | null>(null);
   const [productForm, setProductForm] = useState({
     name: '',
@@ -241,6 +243,152 @@ export const frm_AdminQuanTri: React.FC = () => {
 
     XLSX.writeFile(wb, `Bao_Cao_Doanh_Thu_${revStartDate}_den_${revEndDate}.xlsx`);
     toast.success('Đã xuất file Excel báo cáo doanh thu thành công!');
+  };
+
+  const handleDownloadProductTemplate = () => {
+    const wb = XLSX.utils.book_new();
+
+    const sampleRows = [
+      {
+        'Tên linh kiện *': 'Intel Core i5-14400F (10 Nhân 16 Luồng)',
+        'Danh mục (cpu/mainboard/ram/vga/ssd/psu/cooler/case) *': 'cpu',
+        'Hãng sản xuất *': 'Intel',
+        'Giá bán (VNĐ) *': 4990000,
+        'Giá gốc (VNĐ)': 5490000,
+        'Số lượng nhập kho *': 20,
+        'Bảo hành (Tháng)': 36,
+        'Socket': 'LGA1700',
+        'Chuẩn RAM': 'DDR5',
+        'Form Factor': '',
+        'TDP (W)': 65,
+        'Công suất nguồn (W)': '',
+        'Link ảnh sản phẩm': 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=600&auto=format&fit=crop&q=80',
+        'Mô tả sản phẩm': 'CPU Intel thế hệ 14 hiệu năng cao cho PC Gaming',
+      },
+      {
+        'Tên linh kiện *': 'Kingston Fury Beast 32GB (2x16GB) DDR5 5600MHz',
+        'Danh mục (cpu/mainboard/ram/vga/ssd/psu/cooler/case) *': 'ram',
+        'Hãng sản xuất *': 'Kingston',
+        'Giá bán (VNĐ) *': 2790000,
+        'Giá gốc (VNĐ)': 3100000,
+        'Số lượng nhập kho *': 35,
+        'Bảo hành (Tháng)': 36,
+        'Socket': '',
+        'Chuẩn RAM': 'DDR5',
+        'Form Factor': '',
+        'TDP (W)': 10,
+        'Công suất nguồn (W)': '',
+        'Link ảnh sản phẩm': 'https://images.unsplash.com/photo-1562976540-1502c2145186?w=600&auto=format&fit=crop&q=80',
+        'Mô tả sản phẩm': 'RAM Desktop DDR5 Dual Channel hỗ trợ Intel XMP 3.0 & AMD EXPO',
+      },
+      {
+        'Tên linh kiện *': 'ASUS Dual GeForce RTX 4060 OC Edition 8GB GDDR6',
+        'Danh mục (cpu/mainboard/ram/vga/ssd/psu/cooler/case) *': 'vga',
+        'Hãng sản xuất *': 'ASUS',
+        'Giá bán (VNĐ) *': 8190000,
+        'Giá gốc (VNĐ)': 8990000,
+        'Số lượng nhập kho *': 15,
+        'Bảo hành (Tháng)': 36,
+        'Socket': '',
+        'Chuẩn RAM': '',
+        'Form Factor': '',
+        'TDP (W)': 115,
+        'Công suất nguồn (W)': '',
+        'Link ảnh sản phẩm': 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=600&auto=format&fit=crop&q=80',
+        'Mô tả sản phẩm': 'Card đồ họa RTX 4060 kiến trúc Ada Lovelace, hỗ trợ DLSS 3',
+      },
+    ];
+
+    const ws1 = XLSX.utils.json_to_sheet(sampleRows);
+    XLSX.utils.book_append_sheet(wb, ws1, 'Danh_Sach_Nhap_Kho');
+
+    const guideRows = [
+      { 'Mã Danh Mục': 'cpu', 'Tên Danh Mục': 'Vi xử lý (CPU)', 'Ghi chú': 'Điền thêm cột Socket (VD: LGA1700, AM5, AM4) và TDP (W)' },
+      { 'Mã Danh Mục': 'mainboard', 'Tên Danh Mục': 'Bo mạch chủ (Mainboard)', 'Ghi chú': 'Điền thêm Socket, Chuẩn RAM (DDR4/DDR5), Form Factor (ATX/M-ATX)' },
+      { 'Mã Danh Mục': 'ram', 'Tên Danh Mục': 'Bộ nhớ trong (RAM)', 'Ghi chú': 'Điền thêm Chuẩn RAM (DDR4 hoặc DDR5)' },
+      { 'Mã Danh Mục': 'vga', 'Tên Danh Mục': 'Card màn hình (VGA)', 'Ghi chú': 'Điền thêm TDP (W)' },
+      { 'Mã Danh Mục': 'ssd', 'Tên Danh Mục': 'Ổ cứng lưu trữ (SSD)', 'Ghi chú': 'Ổ cứng NVMe / SATA' },
+      { 'Mã Danh Mục': 'psu', 'Tên Danh Mục': 'Nguồn máy tính (PSU)', 'Ghi chú': 'Điền thêm Công suất nguồn (W) (VD: 650, 750, 850)' },
+      { 'Mã Danh Mục': 'cooler', 'Tên Danh Mục': 'Tản nhiệt (Cooler)', 'Ghi chú': 'Tản khí hoặc Tản nước AIO' },
+      { 'Mã Danh Mục': 'case', 'Tên Danh Mục': 'Vỏ máy tính (Case)', 'Ghi chú': 'Vỏ Case ATX / M-ATX' },
+      { 'Mã Danh Mục': 'QUY TẮC NHẬP', 'Tên Danh Mục': 'Cộng dồn hoặc Tạo mới tự động', 'Ghi chú': 'Nếu Tên linh kiện trùng với sản phẩm đã có trong kho, hệ thống tự động CỘNG THÊM số lượng tồn kho. Nếu chưa có sẽ TẠO MỚI.' },
+    ];
+    const ws2 = XLSX.utils.json_to_sheet(guideRows);
+    XLSX.utils.book_append_sheet(wb, ws2, 'Huong_Dan_Danh_Muc');
+
+    XLSX.writeFile(wb, 'Mau_Nhap_Kho_Linh_Kien_IoT_AI.xlsx');
+    toast.success('Đã tải xuống file mẫu Mau_Nhap_Kho_Linh_Kien_IoT_AI.xlsx!');
+  };
+
+  const handleImportExcelFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImportingExcel(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const firstSheetName = wb.SheetNames[0];
+      const ws = wb.Sheets[firstSheetName];
+      const rawRows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      if (!rawRows || rawRows.length === 0) {
+        toast.warning('File Excel không có dòng dữ liệu nào!');
+        return;
+      }
+
+      const pickField = (row: any, keys: string[]) => {
+        for (const k of Object.keys(row)) {
+          const norm = k.toLowerCase().trim();
+          if (keys.some((target) => norm.includes(target))) {
+            return row[k];
+          }
+        }
+        return '';
+      };
+
+      const parsedItems = rawRows
+        .map((row) => {
+          const name = String(pickField(row, ['tên linh kiện', 'ten linh kien', 'tên sản phẩm', 'name']) || '').trim();
+          if (!name) return null;
+          return {
+            name,
+            category: String(pickField(row, ['danh mục', 'danh muc', 'category']) || 'cpu').trim(),
+            brand: String(pickField(row, ['hãng', 'hang', 'thương hiệu', 'brand']) || 'OEM').trim(),
+            price: pickField(row, ['giá bán', 'gia ban', 'đơn giá', 'price']),
+            originalPrice: pickField(row, ['giá gốc', 'gia goc', 'original']),
+            stockQuantity: pickField(row, ['số lượng', 'so luong', 'tồn kho', 'stock', 'quantity']),
+            warrantyMonths: pickField(row, ['bảo hành', 'bao hanh', 'warranty']),
+            socket: String(pickField(row, ['socket']) || '').trim(),
+            ramGeneration: String(pickField(row, ['chuẩn ram', 'chuan ram', 'ram']) || '').trim(),
+            formFactor: String(pickField(row, ['form factor', 'kích thước']) || '').trim(),
+            tdp: pickField(row, ['tdp']),
+            psuWattage: pickField(row, ['công suất nguồn', 'cong suat nguon', 'psu']),
+            imageUrl: String(pickField(row, ['link ảnh', 'link anh', 'hình ảnh', 'image']) || '').trim(),
+            description: String(pickField(row, ['mô tả', 'mo ta', 'description']) || '').trim(),
+          };
+        })
+        .filter(Boolean);
+
+      if (parsedItems.length === 0) {
+        toast.error('Không tìm thấy cột "Tên linh kiện *" hợp lệ trong file Excel. Vui lòng dùng đúng File Mẫu!');
+        return;
+      }
+
+      const res = await adminService.bulkImportProducts(parsedItems);
+      await refetchProducts();
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      toast.success(
+        `Nhập kho từ file "${file.name}" thành công: Tạo mới ${res?.createdCount ?? 0} SP, Cộng tồn kho ${res?.updatedCount ?? 0} SP!`
+      );
+    } catch (err: any) {
+      toast.error('Lỗi khi nhập file Excel: ' + (err?.response?.data?.message || err.message));
+    } finally {
+      setIsImportingExcel(false);
+      if (excelInputRef.current) {
+        excelInputRef.current.value = '';
+      }
+    }
   };
 
   const saveDeviceMutation = useMutation({
@@ -579,10 +727,43 @@ export const frm_AdminQuanTri: React.FC = () => {
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
             </div>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-              <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+            <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+              <span className="text-xs text-slate-400 font-medium hidden lg:inline mr-1">
                 Tổng cộng: <strong className="text-sky-400">{productsPage?.totalElements || 0}</strong> sản phẩm
               </span>
+
+              {/* Input file Excel ẩn */}
+              <input
+                ref={excelInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleImportExcelFile}
+                className="hidden"
+              />
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleDownloadProductTemplate}
+                className="flex items-center gap-1.5 border-slate-700 text-slate-200 hover:border-sky-500/50 hover:text-sky-300"
+                title="Tải file Excel mẫu có sẵn cấu trúc cột và hướng dẫn danh mục"
+              >
+                <Download className="w-3.5 h-3.5 text-sky-400" />
+                Tải File Mẫu (.xlsx)
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isImportingExcel}
+                onClick={() => excelInputRef.current?.click()}
+                className="flex items-center gap-1.5 bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20"
+                title="Chọn file Excel (.xlsx) để nhập hàng loạt sản phẩm vào kho"
+              >
+                <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                {isImportingExcel ? 'Đang nhập kho...' : 'Nhập Kho Bằng Excel'}
+              </Button>
+
               <Button
                 size="sm"
                 className="flex items-center gap-1.5"

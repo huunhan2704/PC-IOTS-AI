@@ -48,6 +48,7 @@ public class AdminController {
     private final IotDeviceRepository deviceRepository;
     private final IotAlertRepository alertRepository;
     private final UserRepository userRepository;
+    private final InventoryLogRepository inventoryLogRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProductMapper productMapper;
     private final ObjectMapper objectMapper;
@@ -204,6 +205,161 @@ public class AdminController {
         p.setIsActive(false);
         productRepository.save(p);
         return ResponseEntity.ok(ApiResponse.ok("Đã vô hiệu hóa sản phẩm", null));
+    }
+
+    @PostMapping("/products/bulk-import")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> bulkImportProducts(
+            @AuthenticationPrincipal UserPrincipal currentUser,
+            @RequestBody Map<String, Object> payload) {
+        Object rawItems = payload.get("items");
+        if (!(rawItems instanceof List<?> itemList) || itemList.isEmpty()) {
+            throw new com.linhkien.iotai.exception.BadRequestException("File Excel không có dữ liệu sản phẩm hợp lệ");
+        }
+
+        User adminUser = currentUser != null ? userRepository.findById(currentUser.getId()).orElse(null) : null;
+        List<Category> allCategories = categoryRepository.findAll();
+        List<Product> existingProducts = productRepository.findAll();
+
+        int createdCount = 0;
+        int updatedCount = 0;
+
+        for (Object obj : itemList) {
+            if (!(obj instanceof Map<?, ?> row)) continue;
+
+            String name = row.get("name") != null ? row.get("name").toString().trim() : "";
+            if (name.isEmpty()) continue;
+
+            String brand = row.get("brand") != null && !row.get("brand").toString().isBlank()
+                    ? row.get("brand").toString().trim() : "OEM";
+            String catKey = row.get("category") != null ? row.get("category").toString().trim().toLowerCase() : "cpu";
+
+            java.math.BigDecimal price = parseBigDecimal(row.get("price"), java.math.BigDecimal.valueOf(1000000));
+            java.math.BigDecimal originalPrice = parseBigDecimal(row.get("originalPrice"), price);
+            int quantity = parseInt(row.get("stockQuantity"), 10);
+            int warrantyMonths = parseInt(row.get("warrantyMonths"), 24);
+            String imageUrl = row.get("imageUrl") != null && !row.get("imageUrl").toString().isBlank()
+                    ? row.get("imageUrl").toString().trim()
+                    : "https://images.unsplash.com/photo-1587202372583-49330a15584d?w=600&auto=format&fit=crop&q=80";
+            String description = row.get("description") != null ? row.get("description").toString().trim() : "";
+
+            // Tìm xem sản phẩm đã có trong kho chưa (so khớp theo tên)
+            Product existing = existingProducts.stream()
+                    .filter(p -> p.getName() != null && p.getName().trim().equalsIgnoreCase(name))
+                    .findFirst()
+                    .orElse(null);
+
+            if (existing != null) {
+                int addQty = Math.max(0, quantity);
+                existing.setStockQuantity((existing.getStockQuantity() != null ? existing.getStockQuantity() : 0) + addQty);
+                if (price.compareTo(java.math.BigDecimal.ZERO) > 0) existing.setPrice(price);
+                if (originalPrice.compareTo(java.math.BigDecimal.ZERO) > 0) existing.setOriginalPrice(originalPrice);
+                if (warrantyMonths > 0) existing.setWarrantyMonths(warrantyMonths);
+                if (row.get("imageUrl") != null && !row.get("imageUrl").toString().isBlank()) {
+                    existing.setImageUrl(imageUrl);
+                }
+                if (!description.isEmpty()) existing.setDescription(description);
+                existing.setIsActive(true);
+                Product saved = productRepository.save(existing);
+
+                if (addQty > 0) {
+                    inventoryLogRepository.save(InventoryLog.builder()
+                            .product(saved)
+                            .admin(adminUser)
+                            .quantity(addQty)
+                            .note("Nhập thêm tồn kho qua File Excel")
+                            .createdAt(java.time.LocalDateTime.now())
+                            .build());
+                }
+                updatedCount++;
+            } else {
+                Category matchedCat = allCategories.stream()
+                        .filter(c -> (c.getSlug() != null && c.getSlug().equalsIgnoreCase(catKey))
+                                || (c.getName() != null && c.getName().toLowerCase().contains(catKey))
+                                || String.valueOf(c.getId()).equals(catKey))
+                        .findFirst()
+                        .orElse(!allCategories.isEmpty() ? allCategories.get(0) : null);
+
+                String slug = name.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "")
+                        + "-" + (System.currentTimeMillis() % 100000);
+
+                Product newProd = Product.builder()
+                        .category(matchedCat)
+                        .name(name)
+                        .slug(slug)
+                        .brand(brand)
+                        .price(price)
+                        .originalPrice(originalPrice)
+                        .stockQuantity(Math.max(0, quantity))
+                        .warrantyMonths(warrantyMonths > 0 ? warrantyMonths : 24)
+                        .imageUrl(imageUrl)
+                        .description(description)
+                        .isActive(true)
+                        .build();
+
+                Product saved = productRepository.save(newProd);
+
+                String socket = row.get("socket") != null ? row.get("socket").toString().trim() : null;
+                String ramGen = row.get("ramGeneration") != null ? row.get("ramGeneration").toString().trim() : null;
+                String formFactor = row.get("formFactor") != null ? row.get("formFactor").toString().trim() : null;
+                Integer tdp = row.get("tdp") != null ? parseInt(row.get("tdp"), 0) : 0;
+                Integer psuWattage = row.get("psuWattage") != null ? parseInt(row.get("psuWattage"), 0) : null;
+                if (psuWattage != null && psuWattage <= 0) psuWattage = null;
+
+                if ((socket != null && !socket.isEmpty()) || (ramGen != null && !ramGen.isEmpty())
+                        || (formFactor != null && !formFactor.isEmpty()) || (tdp != null && tdp > 0) || psuWattage != null) {
+                    ProductSpec spec = ProductSpec.builder()
+                            .product(saved)
+                            .socket(socket != null && !socket.isEmpty() ? socket : null)
+                            .ramGeneration(ramGen != null && !ramGen.isEmpty() ? ramGen : null)
+                            .formFactor(formFactor != null && !formFactor.isEmpty() ? formFactor : null)
+                            .tdp(tdp != null ? tdp : 0)
+                            .psuWattage(psuWattage)
+                            .build();
+                    saved.setSpecs(spec);
+                    saved = productRepository.save(saved);
+                }
+
+                existingProducts.add(saved);
+
+                inventoryLogRepository.save(InventoryLog.builder()
+                        .product(saved)
+                        .admin(adminUser)
+                        .quantity(Math.max(0, quantity))
+                        .note("Thêm mới & nhập kho qua File Excel")
+                        .createdAt(java.time.LocalDateTime.now())
+                        .build());
+                createdCount++;
+            }
+        }
+
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("createdCount", createdCount);
+        result.put("updatedCount", updatedCount);
+        result.put("totalProcessed", createdCount + updatedCount);
+        return ResponseEntity.ok(ApiResponse.ok(
+                String.format("Nhập kho Excel thành công: Thêm mới %d sản phẩm, Cộng tồn kho %d sản phẩm", createdCount, updatedCount),
+                result));
+    }
+
+    private java.math.BigDecimal parseBigDecimal(Object val, java.math.BigDecimal defaultVal) {
+        if (val == null) return defaultVal;
+        try {
+            String clean = val.toString().replaceAll("[^0-9.]", "");
+            return clean.isEmpty() ? defaultVal : new java.math.BigDecimal(clean);
+        } catch (Exception e) {
+            return defaultVal;
+        }
+    }
+
+    private int parseInt(Object val, int defaultVal) {
+        if (val == null) return defaultVal;
+        try {
+            String clean = val.toString().replaceAll("[^0-9-]", "");
+            return clean.isEmpty() ? defaultVal : Integer.parseInt(clean);
+        } catch (Exception e) {
+            return defaultVal;
+        }
     }
 
     @GetMapping("/orders")

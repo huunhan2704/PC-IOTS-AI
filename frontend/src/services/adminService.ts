@@ -30,6 +30,10 @@ export const adminService = {
     return api.delete(`/admin/products/${id}`);
   },
 
+  bulkImportProducts: async (items: any[]): Promise<any> => {
+    return api.post('/admin/products/bulk-import', { items });
+  },
+
   getOrders: async (params?: { status?: string; keyword?: string; page?: number; size?: number }): Promise<PageResponse<OrderDto>> => {
     return api.get('/admin/orders', { params });
   },
