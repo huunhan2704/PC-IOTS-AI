@@ -164,7 +164,14 @@ export const frm_DashboardIoT: React.FC = () => {
     }
     try {
       await iotService.setScenario(selectedDeviceCode, scenario);
-      toast.success(`Đã chuyển kịch bản giả lập sang: ${scenario}`);
+      if (scenario === 'STOP') {
+        setLatestTelemetry(emptyTelemetry(selectedDeviceCode));
+        setTelemetryHistory([]);
+        setActiveAlert(null);
+        toast.info('Đã dừng luồng mô phỏng và đưa đồng hồ đo về 0');
+      } else {
+        toast.success(`Đã bật kịch bản giả lập: ${scenario}`);
+      }
       refetchDevices();
     } catch (e: any) {
       toast.error('Không thể điều khiển kịch bản giả lập');
@@ -237,10 +244,9 @@ export const frm_DashboardIoT: React.FC = () => {
           </span>
           <span className="text-slate-600">|</span>
           <span className="flex items-center gap-1.5 font-bold">
-            {(currentDevice?.status === 'ONLINE' || currentDevice?.status === 'WARNING') &&
-            ((latestTelemetry.ambientTemp ?? 0) > 0 ||
-              (latestTelemetry.ambientHumidity ?? 0) > 0 ||
-              (latestTelemetry.dustDensity ?? 0) > 0) ? (
+            {(latestTelemetry.ambientTemp ?? 0) > 0 ||
+            (latestTelemetry.ambientHumidity ?? 0) > 0 ||
+            (latestTelemetry.dustDensity ?? 0) > 0 ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400">
                 ● Mạch ESP32: ĐANG HOẠT ĐỘNG
               </span>
@@ -542,7 +548,9 @@ export const frm_DashboardIoT: React.FC = () => {
 
       {/* 6. Simulation Controls Toolbar */}
       <SimulationControls
-        currentScenario={currentDevice?.currentScenario || 'IDLE'}
+        currentScenario={
+          !isDeviceOnline ? 'STOP' : (currentDevice?.currentScenario as Scenario) || 'STOP'
+        }
         onSelectScenario={handleScenarioChange}
         disabled={!selectedDeviceCode}
       />

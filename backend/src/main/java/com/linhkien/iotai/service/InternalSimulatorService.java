@@ -31,43 +31,55 @@ public class InternalSimulatorService {
     private final Random random = new Random();
 
     public void setScenario(String deviceCode, String scenario) {
-        scenarioMap.put(deviceCode, scenario.toUpperCase());
+        String upper = scenario != null ? scenario.trim().toUpperCase() : "STOP";
+        scenarioMap.put(deviceCode, upper);
         deviceRepository.findByDeviceCode(deviceCode).ifPresent(d -> {
-            d.setCurrentScenario(scenario.toUpperCase());
+            d.setCurrentScenario(upper);
+            if ("STOP".equalsIgnoreCase(upper) && !mqttSubscriberService.isRealPcStreaming(deviceCode)) {
+                d.setStatus(com.linhkien.iotai.entity.enums.DeviceStatus.OFFLINE);
+            }
             deviceRepository.save(d);
         });
     }
 
+    public void stopSimulation(String deviceCode) {
+        if (deviceCode != null) {
+            scenarioMap.put(deviceCode.trim().toUpperCase(), "STOP");
+        }
+    }
+
     public String getScenario(String deviceCode) {
-        return scenarioMap.getOrDefault(deviceCode, "IDLE");
+        return scenarioMap.getOrDefault(deviceCode, "STOP");
     }
 
     @Scheduled(fixedRateString = "${app.simulator.interval-ms:2000}")
     public void generateSimulatedTelemetry() {
-        if (!simulatorEnabled) {
-            return;
-        }
-
         List<IotDevice> devices = deviceRepository.findAll();
         for (IotDevice dev : devices) {
-            String sc = scenarioMap.computeIfAbsent(dev.getDeviceCode(), k ->
-                    dev.getCurrentScenario() != null ? dev.getCurrentScenario() : "IDLE"
-            );
+            String code = dev.getDeviceCode();
+            // Chỉ chạy giả lập khi người dùng chủ động bấm chọn kịch bản (IDLE/GAMING/STRESS) trên thanh công cụ
+            String sc = scenarioMap.get(code);
+            if (sc == null) {
+                if (!simulatorEnabled) {
+                    continue;
+                }
+                sc = dev.getCurrentScenario() != null ? dev.getCurrentScenario() : "STOP";
+            }
 
             if ("STOP".equalsIgnoreCase(sc)) {
                 continue;
             }
 
-            // If real PC agent is actively publishing via MQTT within last 10s, pause simulator
-            if (mqttSubscriberService.isRealPcStreaming(dev.getDeviceCode())) {
+            // If real PC agent is actively publishing within last 10s, pause simulator
+            if (mqttSubscriberService.isRealPcStreaming(code)) {
                 continue;
             }
 
-            IotDto.TelemetryResponse telem = simulateMetrics(dev.getDeviceCode(), sc);
+            IotDto.TelemetryResponse telem = simulateMetrics(code, sc);
             try {
-                telemetryService.processTelemetry(dev.getDeviceCode(), telem);
+                telemetryService.processTelemetry(code, telem);
             } catch (Exception e) {
-                log.error("Internal simulation push failed for {}: {}", dev.getDeviceCode(), e.getMessage());
+                log.error("Internal simulation push failed for {}: {}", code, e.getMessage());
             }
         }
     }

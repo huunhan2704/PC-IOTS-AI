@@ -39,11 +39,16 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    const reqUrl = error.config?.url || '';
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      // Optional: do not alert if already on login page
-      if (!window.location.pathname.includes('/dang-nhap')) {
-        toast.error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+      if (reqUrl.includes('/auth/login')) {
+        const msg = error.response?.data?.message || 'Tên đăng nhập hoặc mật khẩu không chính xác';
+        toast.error(msg);
+      } else {
+        useAuthStore.getState().logout();
+        if (!window.location.pathname.includes('/dang-nhap')) {
+          toast.error(error.response?.data?.message || 'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+        }
       }
     } else {
       const msg = error.response?.data?.message || error.message || 'Lỗi kết nối máy chủ';

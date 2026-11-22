@@ -128,6 +128,57 @@ public class IotTelemetryService {
         messagingTemplate.convertAndSend("/topic/telemetry/" + canonicalCode, telemetry);
     }
 
+    /**
+     * Khi chỉ có mạch ESP32 gửi dữ liệu môi trường (mà App Desktop PC chưa bật),
+     * phát trực tiếp thông số môi trường ESP32 lên WebSocket để giao diện hiển thị ESP32 ĐANG HOẠT ĐỘNG,
+     * đồng thời giữ nguyên các thông số phần cứng PC ở mức 0 (không tự bịa số PC).
+     */
+    @Transactional
+    public void processEspOnlyTelemetry(String deviceCode, float ambTemp, float ambHum, float dustDensity) {
+        IotDevice device = deviceRepository.findByDeviceCode(deviceCode).orElse(null);
+        if (device == null) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        String flag = "NORMAL";
+
+        if (ambTemp >= 40.0f) {
+            flag = "AMBIENT_HEAT";
+            saveAndBroadcastAlert(device, "AMBIENT_HEAT", Severity.HIGH,
+                    String.format("CẢNH BÁO MÔI TRƯỜNG PHÒNG MÁY (BR10): Cảm biến ESP32 ghi nhận nhiệt độ phòng đạt %.1f°C, cần bật điều hòa hoặc quạt thông gió", ambTemp),
+                    ambTemp);
+        }
+        if (dustDensity >= 100.0f) {
+            if (!"AMBIENT_HEAT".equals(flag)) {
+                flag = "DUST_HIGH";
+            }
+            saveAndBroadcastAlert(device, "DUST_HIGH", Severity.HIGH,
+                    String.format("CẢNH BÁO BỤI TRONG CASE: Cảm biến ESP32 ghi nhận mật độ bụi %.1f µg/m³ (>= 100 µg/m³). Đề nghị vệ sinh máy và lưới lọc bụi!", dustDensity),
+                    dustDensity);
+        }
+
+        IotDto.TelemetryResponse espOnly = IotDto.TelemetryResponse.builder()
+                .deviceCode(device.getDeviceCode())
+                .cpuLoad(0.0f)
+                .cpuTemp(0.0f)
+                .cpuClockMhz(0)
+                .ramUsage(0.0f)
+                .ramUsedGb(0.0f)
+                .ramTotalGb(0.0f)
+                .gpuLoad(0.0f)
+                .gpuTemp(0.0f)
+                .fanSpeedRpm(0)
+                .powerDrawW(0)
+                .ambientTemp(ambTemp)
+                .ambientHumidity(ambHum)
+                .dustDensity(dustDensity)
+                .statusFlag(flag)
+                .recordedAt(now.toString())
+                .build();
+
+        messagingTemplate.convertAndSend("/topic/telemetry/" + device.getDeviceCode(), espOnly);
+    }
+
     private void saveAndBroadcastAlert(IotDevice device, String type, Severity severity, String message, float val) {
         IotAlert alert = IotAlert.builder()
                 .device(device)

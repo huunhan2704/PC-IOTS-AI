@@ -97,9 +97,13 @@ public class PcBuilderService {
             }
         }
 
-        // Calculate Total TDP: CPU + GPU + base 50W
+        // Calculate Total TDP: CPU + GPU + base 50W (if GPU is checked with PSU without a CPU selected, reserve 120W for a standard CPU)
         int totalTdp = 50; // base system (fans, motherboard, chipset, storage)
-        if (cpu != null && cpu.getSpecs() != null) totalTdp += cpu.getSpecs().getTdp();
+        if (cpu != null && cpu.getSpecs() != null) {
+            totalTdp += cpu.getSpecs().getTdp();
+        } else if (gpu != null && psu != null) {
+            totalTdp += 120; // typical CPU TDP reservation when checking GPU + PSU pair
+        }
         if (gpu != null && gpu.getSpecs() != null) totalTdp += gpu.getSpecs().getTdp();
         if (ssd != null && ssd.getSpecs() != null) totalTdp += ssd.getSpecs().getTdp();
 

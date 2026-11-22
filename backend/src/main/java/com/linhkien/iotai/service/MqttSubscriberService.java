@@ -98,6 +98,14 @@ public class MqttSubscriberService implements MqttCallback {
                 latestEnvTimeMap.put(deviceId, System.currentTimeMillis());
                 log.info("Received environment telemetry from ESP32 for {}: {}", deviceId, payload);
 
+                // Nếu PC Desktop Agent chưa chạy, vẫn đẩy trực tiếp dữ liệu ESP32 lên Web để hiển thị ESP32 ĐANG HOẠT ĐỘNG
+                if (!isRealPcStreaming(deviceId)) {
+                    float ambTemp = getFloat(envMap, "ambientTemp", "temperature", 0.0f);
+                    float ambHum = getFloat(envMap, "ambientHumidity", "humidity", 0.0f);
+                    float dust = getFloat(envMap, "dustDensity", "dust", 0.0f);
+                    telemetryService.processEspOnlyTelemetry(deviceId, ambTemp, ambHum, dust);
+                }
+
             } else if (topic.startsWith("pc/telemetry/")) {
                 String rawDeviceId = topic.substring("pc/telemetry/".length()).trim().toUpperCase();
                 String deviceId = ("PC_GAMING_NHAN".equalsIgnoreCase(rawDeviceId) || "PC_GAMING".equalsIgnoreCase(rawDeviceId)) ? "PC-NHAN-001" : rawDeviceId;
@@ -172,6 +180,12 @@ public class MqttSubscriberService implements MqttCallback {
     public boolean isRealPcStreaming(String deviceId) {
         Long lastTime = realPcLastStreamMap.get(deviceId);
         return lastTime != null && (System.currentTimeMillis() - lastTime < 10000);
+    }
+
+    public void markRealPcStream(String deviceId) {
+        if (deviceId != null) {
+            realPcLastStreamMap.put(deviceId.trim().toUpperCase(), System.currentTimeMillis());
+        }
     }
 
     @Override

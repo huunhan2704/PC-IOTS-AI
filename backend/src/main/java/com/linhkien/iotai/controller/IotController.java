@@ -110,6 +110,8 @@ public class IotController {
             }
         }
 
+        simulatorService.stopSimulation(code);
+        mqttSubscriberService.markRealPcStream(code);
         telemetryService.processTelemetry(code, telemetry);
         return ResponseEntity.ok(ApiResponse.ok("Đã nhận dữ liệu telemetry từ Desktop Agent", null));
     }

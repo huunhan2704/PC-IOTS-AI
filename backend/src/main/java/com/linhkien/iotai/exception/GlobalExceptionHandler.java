@@ -18,9 +18,9 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ApiResponse<Object>> handleBadRequest(BadRequestException ex) {
-        log.warn("BadRequestException: {}", ex.getMessage());
+    @ExceptionHandler({BadRequestException.class, IllegalArgumentException.class, IllegalStateException.class})
+    public ResponseEntity<ApiResponse<Object>> handleBadRequest(RuntimeException ex) {
+        log.warn("BadRequest: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(ex.getMessage()));
     }
 
@@ -43,12 +43,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
+        StringBuilder firstMsg = new StringBuilder();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
+            if (firstMsg.length() == 0 && errorMessage != null) {
+                firstMsg.append(errorMessage);
+            }
         });
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error("Dữ liệu gửi lên không hợp lệ", errors));
+        String msg = firstMsg.length() > 0 ? firstMsg.toString() : "Dữ liệu gửi lên không hợp lệ";
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(msg, errors));
     }
 
     @ExceptionHandler(Exception.class)
