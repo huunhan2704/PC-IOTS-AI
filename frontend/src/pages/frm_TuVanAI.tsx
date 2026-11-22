@@ -213,20 +213,26 @@ export const frm_TuVanAI: React.FC = () => {
           </div>
           <div className="space-y-1 max-w-lg mx-auto">
             <h3 className="text-base font-bold text-slate-100">
-              Tài khoản chưa có Node Thiết Bị PC / IoT nào
+              Tài khoản chưa được cấp Node Thiết Bị PC / IoT
             </h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Để sử dụng tính năng <strong>Chuẩn Đoán AI</strong>, bạn cần đăng ký Node thiết bị tại trang{' '}
-              <strong>IoT Live</strong> (hoặc đặt mua bộ PC và được Admin xác nhận đơn hàng để hệ thống cấp sẵn mã Node), sau đó mở ứng dụng Desktop kết nối PC.
+              Mã Node thiết bị IoT ESP32 đã cấu hình sẵn sẽ được hệ thống <strong>tự động cấp vào tài khoản</strong> ngay sau khi đơn hàng Build PC của bạn được Quản trị viên <strong>Xác nhận đơn hàng</strong>. Sau khi được cấp Node, hãy mở ứng dụng Desktop kết nối PC để sử dụng Chuẩn Đoán AI.
             </p>
           </div>
-          <Link
-            to="/iot"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 transition"
-          >
-            <Activity className="w-4 h-4" />
-            Đến trang IoT Live để thêm & kết nối PC
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/pc-builder"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 transition"
+            >
+              Xây dựng cấu hình PC (PC Builder)
+            </Link>
+            <Link
+              to="/don-hang"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+            >
+              Xem trạng thái đơn hàng
+            </Link>
+          </div>
         </div>
       ) : currentDevice && (
         <div

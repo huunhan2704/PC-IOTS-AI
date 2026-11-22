@@ -41,6 +41,14 @@ public class IotController {
     public ResponseEntity<ApiResponse<IotDto.DeviceResponse>> createDevice(
             @AuthenticationPrincipal UserPrincipal user,
             @RequestBody IotDto.CreateDeviceRequest request) {
+        if (user == null) {
+            throw new com.linhkien.iotai.exception.BadRequestException("Vui lòng đăng nhập");
+        }
+        String role = user.getAuthorities().iterator().next().getAuthority();
+        if (!"ROLE_ADMIN".equals(role) && !"ROLE_TECHNICIAN".equals(role)) {
+            throw new com.linhkien.iotai.exception.BadRequestException(
+                    "Khách hàng không tự tạo Node thủ công. Hệ thống sẽ tự động cấp Node ESP32 đã cấu hình sẵn khi đơn hàng Build PC của bạn được xác nhận!");
+        }
         return ResponseEntity.ok(ApiResponse.ok("Đăng ký thiết bị IoT thành công", generalAppService.createDevice(user.getId(), request)));
     }
 

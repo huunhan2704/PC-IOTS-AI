@@ -56,9 +56,6 @@ const emptyTelemetry = (code: string): TelemetryDto => ({
 
 export const frm_DashboardIoT: React.FC = () => {
   const [selectedDeviceCode, setSelectedDeviceCode] = useState<string>('');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newDeviceName, setNewDeviceName] = useState('');
-  const [newRoomLocation, setNewRoomLocation] = useState('');
 
   // Live telemetry state (starts at 0 until device actually sends data)
   const [latestTelemetry, setLatestTelemetry] = useState<TelemetryDto>(() => emptyTelemetry(''));
@@ -162,7 +159,7 @@ export const frm_DashboardIoT: React.FC = () => {
 
   const handleScenarioChange = async (scenario: Scenario) => {
     if (!selectedDeviceCode) {
-      toast.warning('Vui lòng chọn hoặc đăng ký thiết bị IoT trước khi chuyển kịch bản giả lập');
+      toast.warning('Chưa có Node thiết bị IoT (Node sẽ được tự động cấp sau khi đơn hàng Build PC được xác nhận)');
       return;
     }
     try {
@@ -171,25 +168,6 @@ export const frm_DashboardIoT: React.FC = () => {
       refetchDevices();
     } catch (e: any) {
       toast.error('Không thể điều khiển kịch bản giả lập');
-    }
-  };
-
-  const handleCreateDevice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newDeviceName.trim()) return;
-    try {
-      const dev = await iotService.createDevice({
-        deviceName: newDeviceName.trim(),
-        roomLocation: newRoomLocation.trim() || undefined,
-      });
-      toast.success(`Tạo thiết bị thành công: ${dev.deviceCode}`);
-      setIsAddModalOpen(false);
-      setNewDeviceName('');
-      setNewRoomLocation('');
-      refetchDevices();
-      setSelectedDeviceCode(dev.deviceCode);
-    } catch (err: any) {
-      toast.error('Lỗi khi đăng ký thiết bị mới');
     }
   };
 
@@ -240,11 +218,6 @@ export const frm_DashboardIoT: React.FC = () => {
             <Laptop className="w-3.5 h-3.5" />
             Tải App (.EXE)
           </a>
-
-          <Button size="sm" variant="outline" onClick={() => setIsAddModalOpen(true)}>
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            Thêm Node
-          </Button>
         </div>
       </div>
 
@@ -557,38 +530,6 @@ export const frm_DashboardIoT: React.FC = () => {
         onSelectScenario={handleScenarioChange}
         disabled={!selectedDeviceCode}
       />
-
-      {/* Modal Add Device */}
-      <Modal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title="Đăng Ký Node Thiết Bị IoT / PC Mới"
-      >
-        <form onSubmit={handleCreateDevice} className="space-y-4">
-          <Input
-            label="Tên thiết bị *"
-            placeholder="Ví dụ: PC Làm Việc Phòng Khách"
-            value={newDeviceName}
-            onChange={(e) => setNewDeviceName(e.target.value)}
-            required
-          />
-          <Input
-            label="Vị trí phòng máy (Tùy chọn)"
-            placeholder="Ví dụ: Phòng 302 - Khoa CNTT HCMUNRE"
-            value={newRoomLocation}
-            onChange={(e) => setNewRoomLocation(e.target.value)}
-          />
-          <p className="text-[11px] text-slate-400">
-            Hệ thống sẽ tự sinh mã Device Code duy nhất (dạng PC-XXXXXX) để cấu hình vào mã nguồn ESP32 hoặc PC Agent.
-          </p>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" type="button" onClick={() => setIsAddModalOpen(false)}>
-              Hủy
-            </Button>
-            <Button type="submit">Đăng Ký</Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 };
