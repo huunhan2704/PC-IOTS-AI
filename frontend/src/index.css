@@ -86,22 +86,43 @@
   border: 1px solid rgba(148, 163, 184, 0.16);
 }
 
-/* Chế độ Sáng hẳn (Light Mode) khi bấm nút Mặt Trời trên Header */
+/* ==================== GIAO DIỆN NỀN TRẮNG SÁNG HIỆN ĐẠI (MẶC ĐỊNH) ==================== */
 html.light-theme body,
 html.light-theme .min-h-screen {
-  background-color: #f1f5f9 !important;
+  background-color: #f4f7fb !important;
   background-image:
-    radial-gradient(at 15% 10%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
-    radial-gradient(at 85% 15%, rgba(99, 102, 241, 0.12) 0px, transparent 50%) !important;
+    radial-gradient(at 10% 0%, rgba(14, 165, 233, 0.09) 0px, transparent 48%),
+    radial-gradient(at 90% 5%, rgba(79, 70, 229, 0.08) 0px, transparent 48%),
+    radial-gradient(at 50% 95%, rgba(16, 185, 129, 0.06) 0px, transparent 50%) !important;
   color: #0f172a !important;
 }
-html.light-theme .bg-slate-950,
-html.light-theme .bg-slate-950\/80,
-html.light-theme .bg-slate-950\/90,
-html.light-theme .bg-slate-950\/60,
-html.light-theme .bg-slate-950\/70 {
-  background-color: #f8fafc !important;
+
+html.light-theme ::-webkit-scrollbar-track {
+  background: #f1f5f9;
 }
+html.light-theme ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+html.light-theme ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Header & Glass Panels */
+html.light-theme .glass-panel {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05);
+}
+
+/* Brand Gradient Text on White Header */
+html.light-theme header .bg-clip-text {
+  background-image: linear-gradient(90deg, #0284c7 0%, #2563eb 55%, #4f46e5 100%) !important;
+}
+
+/* Cards & Surfaces (White with subtle elevation) */
 html.light-theme .bg-slate-900,
 html.light-theme .bg-slate-900\/90,
 html.light-theme .bg-slate-900\/80,
@@ -109,28 +130,126 @@ html.light-theme .bg-slate-900\/70,
 html.light-theme .bg-slate-900\/60,
 html.light-theme .bg-slate-900\/40,
 html.light-theme .bg-slate-900\/30,
-html.light-theme .glass-panel {
-  background-color: rgba(255, 255, 255, 0.94) !important;
-  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.06);
+html.light-theme .glass-card {
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 12px -2px rgba(15, 23, 42, 0.05);
 }
-html.light-theme .bg-slate-800 {
+
+/* Hero Banner & AI Gradient Cards */
+html.light-theme .from-slate-900 {
+  background-image: linear-gradient(135deg, #eff6ff 0%, #ffffff 55%, #eef2ff 100%) !important;
+  border-color: #bfdbfe !important;
+}
+html.light-theme .from-indigo-950\/60 {
+  background-image: linear-gradient(135deg, #eef2ff 0%, #ffffff 55%, #e0f2fe 100%) !important;
+  border-color: #c7d2fe !important;
+}
+html.light-theme .bg-indigo-950\/40,
+html.light-theme .bg-sky-950\/20 {
+  background-color: #f0f9ff !important;
+}
+html.light-theme .bg-emerald-950\/20 {
+  background-color: #ecfdf5 !important;
+}
+
+/* Inner Wells, Inputs, Selects & Table Headers */
+html.light-theme .bg-slate-950,
+html.light-theme .bg-slate-950\/90,
+html.light-theme .bg-slate-950\/80,
+html.light-theme .bg-slate-950\/70,
+html.light-theme .bg-slate-950\/60 {
+  background-color: #f8fafc !important;
+}
+html.light-theme thead.bg-slate-950\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+/* Giữ lớp nền mờ tối cho Modal Backdrop để popup nổi bật */
+html.light-theme .fixed.inset-0.bg-slate-950\/80 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Secondary & Chip Surfaces */
+html.light-theme .bg-slate-800,
+html.light-theme .bg-slate-800\/60 {
+  background-color: #f1f5f9 !important;
+}
+html.light-theme .hover\:bg-slate-800:hover,
+html.light-theme .hover\:bg-slate-800\/60:hover,
+html.light-theme .hover\:bg-slate-700:hover {
   background-color: #e2e8f0 !important;
 }
+html.light-theme .hover\:bg-slate-900\/40:hover,
+html.light-theme .hover\:bg-slate-900\/60:hover,
+html.light-theme .hover\:bg-slate-900:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Borders & Dividers */
 html.light-theme .border-slate-800,
 html.light-theme .border-slate-800\/80,
 html.light-theme .border-slate-800\/60,
-html.light-theme .border-slate-700 {
-  border-color: #cbd5e1 !important;
+html.light-theme .border-slate-800\/40,
+html.light-theme .border-slate-700,
+html.light-theme .border-slate-700\/80 {
+  border-color: #e2e8f0 !important;
 }
-html.light-theme .text-slate-100,
-html.light-theme .text-slate-200,
-html.light-theme .text-white {
+html.light-theme .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+html.light-theme .divide-slate-800\/80 > :not([hidden]) ~ :not([hidden]),
+html.light-theme .divide-slate-800\/70 > :not([hidden]) ~ :not([hidden]),
+html.light-theme .divide-slate-800\/60 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+/* Form Controls (Input, Select, Textarea) */
+html.light-theme input:not([type="checkbox"]):not([type="radio"]),
+html.light-theme select,
+html.light-theme textarea {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
   color: #0f172a !important;
 }
-html.light-theme .text-slate-300,
-html.light-theme .text-slate-400 {
+html.light-theme input::placeholder,
+html.light-theme textarea::placeholder {
+  color: #94a3b8 !important;
+}
+html.light-theme input:focus,
+html.light-theme select:focus,
+html.light-theme textarea:focus {
+  background-color: #ffffff !important;
+  border-color: #0284c7 !important;
+}
+html.light-theme optgroup {
+  background-color: #f1f5f9 !important;
+  color: #0284c7 !important;
+}
+html.light-theme option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Code blocks (như khung code ESP32 cho kỹ thuật viên) vẫn giữ nền tối dễ đọc */
+html.light-theme pre.bg-slate-950 {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+/* Typography Hierarchy */
+html.light-theme .text-slate-100,
+html.light-theme .text-slate-200 {
+  color: #0f172a !important;
+}
+html.light-theme .text-slate-300 {
   color: #334155 !important;
 }
+html.light-theme .text-slate-400 {
+  color: #475569 !important;
+}
+html.light-theme .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Accent Colors Harmonized for White Background */
 html.light-theme .text-sky-400,
 html.light-theme .text-sky-300 {
   color: #0284c7 !important;
@@ -140,11 +259,53 @@ html.light-theme .text-emerald-300 {
   color: #059669 !important;
 }
 html.light-theme .text-indigo-400,
-html.light-theme .text-indigo-300 {
+html.light-theme .text-indigo-300,
+html.light-theme .text-indigo-200 {
   color: #4f46e5 !important;
 }
-html.light-theme .text-rose-400 {
+html.light-theme .text-amber-400,
+html.light-theme .text-amber-300,
+html.light-theme .text-amber-200 {
+  color: #d97706 !important;
+}
+html.light-theme .text-rose-400,
+html.light-theme .text-rose-300 {
   color: #e11d48 !important;
+}
+html.light-theme .text-purple-400 {
+  color: #7c3aed !important;
+}
+html.light-theme .text-cyan-400 {
+  color: #0891b2 !important;
+}
+
+/* Primary Action Buttons (Sky Blue -> Crisp Royal Sky with White text) */
+html.light-theme .bg-sky-500 {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+html.light-theme .bg-sky-500:hover,
+html.light-theme .hover\:bg-sky-400:hover {
+  background-color: #0369a1 !important;
+  color: #ffffff !important;
+}
+
+/* SVG Gauges & Recharts Charts on White Background */
+html.light-theme svg circle[stroke="#1e293b"] {
+  stroke: #e2e8f0 !important;
+}
+html.light-theme .recharts-cartesian-grid line {
+  stroke: #e2e8f0 !important;
+}
+html.light-theme .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12) !important;
+}
+html.light-theme .recharts-tooltip-item,
+html.light-theme .recharts-tooltip-label {
+  color: #0f172a !important;
 }
 
 .glow-cyan {

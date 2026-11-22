@@ -17,10 +17,16 @@ function applyDomTheme(isDark: boolean) {
   }
 }
 
+// Mặc định khởi tạo giao diện Nền Trắng Sáng (Light Mode) ngay khi tải trang
+if (typeof document !== 'undefined') {
+  document.documentElement.classList.remove('dark');
+  document.documentElement.classList.add('light-theme');
+}
+
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
-      isDark: true,
+      isDark: false,
       toggleTheme: () => {
         const next = !get().isDark;
         applyDomTheme(next);
@@ -28,10 +34,12 @@ export const useThemeStore = create<ThemeState>()(
       },
     }),
     {
-      name: 'linhkien-theme',
+      name: 'linhkien-theme-v3',
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyDomTheme(state.isDark);
+        } else {
+          applyDomTheme(false);
         }
       },
     }
