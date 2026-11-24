@@ -102,7 +102,22 @@ if ($result.cpuTemp -eq 0) {
     $tz = Get-CimInstance -Namespace 'root\wmi' -ClassName MSAcpi_ThermalZoneTemperature | Select-Object -First 1
     if ($tz -and $tz.CurrentTemperature -gt 2732) {
         $c = ($tz.CurrentTemperature / 10.0) - 273.15
-        if ($c -gt 0 -and $c -lt 115) { $result.cpuTemp = [math]::Round($c, 1) }
+        if ($c -gt 10 -and $c -lt 115) { $result.cpuTemp = [math]::Round($c, 1) }
+    }
+}
+
+if ($result.cpuTemp -eq 0) {
+    $tzi = Get-CimInstance -ClassName Win32_PerfFormattedData_Counters_ThermalZoneInformation
+    foreach ($z in $tzi) {
+        $c = 0
+        if ($z.HighPrecisionTemperature -gt 2732) {
+            $c = ($z.HighPrecisionTemperature / 10.0) - 273.15
+        } elseif ($z.Temperature -gt 273) {
+            $c = [double]$z.Temperature - 273.15
+        }
+        if ($c -gt 10 -and $c -lt 115 -and $c -gt $result.cpuTemp) {
+            $result.cpuTemp = [math]::Round($c, 1)
+        }
     }
 }
 
@@ -119,7 +134,7 @@ $result | ConvertTo-Json -Compress
             out = subprocess.check_output(
                 ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
                 creationflags=CREATE_NO_WINDOW,
-                timeout=3,
+                timeout=6,
                 stderr=subprocess.DEVNULL,
             ).decode("utf-8", errors="ignore").strip()
             if out:
@@ -354,8 +369,8 @@ class PcMonitorApp:
         self.device_code = self.selected_device["deviceCode"]
 
         self.root.title(f"LinhKien IoT·AI Monitor — {user.get('fullName', user.get('username'))}")
-        self.root.geometry("460x500")
-        self.root.minsize(440, 480)
+        self.root.geometry("540x510")
+        self.root.minsize(520, 490)
         self.root.configure(bg="#0B0F19")
 
         self.sensor_reader = RealHardwareSensorReader()
@@ -547,6 +562,8 @@ class PcMonitorApp:
             fg="#10B981",
             bg="#111827",
             anchor="w",
+            justify="left",
+            wraplength=485,
         )
         self.lbl_temp_fan.pack(fill=tk.X, pady=3)
 
@@ -558,7 +575,7 @@ class PcMonitorApp:
         esp_header.pack(fill=tk.X)
         tk.Label(
             esp_header,
-            text="🌡️ MẠCH CẢM BIẾN MÔI TRƯỜNG NGOÀI (ESP32)",
+            text="🌡️ CẢM BIẾN MÔI TRƯỜNG NGOÀI (ESP32)",
             font=("Segoe UI", 8, "bold"),
             fg="#FBBF24",
             bg="#0F172A",
@@ -583,6 +600,8 @@ class PcMonitorApp:
             fg="#94A3B8",
             bg="#161E2E",
             anchor="w",
+            justify="left",
+            wraplength=485,
         )
         self.lbl_ambient.pack(fill=tk.X)
 
